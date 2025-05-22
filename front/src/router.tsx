@@ -6,8 +6,9 @@ import { profileRoute } from './routes/profile'
 
 const routeTree = rootRoute.addChildren([
   authRoute,
-  protectedRoute,
-  profileRoute,
+  protectedRoute.addChildren([
+    profileRoute
+  ]),
 ])
 
 const router = createRouter({ routeTree })

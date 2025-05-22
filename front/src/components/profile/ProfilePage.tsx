@@ -1,7 +1,4 @@
-import { useState, useEffect } from "react"
 import { useNavigate } from "@tanstack/react-router"
-import { supabase } from "@/lib/supabase"
-import type { User } from "@supabase/supabase-js"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -11,33 +8,22 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, signOut } = useAuth()
   const navigate = useNavigate()
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
-    }
-    getUser()
-  }, [])
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut()
+      await signOut()
       navigate({ to: "/auth" })
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error)
     }
   }
 
-  if (loading) {
-    return <div>Chargement...</div>
-  }
+  console.log(user)
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">

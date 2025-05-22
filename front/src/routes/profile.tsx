@@ -1,9 +1,9 @@
 import { createRoute } from '@tanstack/react-router'
-import { rootRoute } from './root'
+import { protectedRoute } from './protected'
 import { ProfilePage } from '@/components/profile/ProfilePage'
 
 export const profileRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => protectedRoute,
   path: 'profile',
   component: () => <ProfilePage />,
 }) 

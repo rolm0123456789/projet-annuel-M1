@@ -35,7 +35,7 @@ export function LoginForm({
       })
 
       if (error) throw error
-      navigate({ to: "/profile" })
+      navigate({ to: "/app/profile" })
     } catch (error) {
       setError(error instanceof Error ? error.message : "Une erreur est survenue")
     } finally {
