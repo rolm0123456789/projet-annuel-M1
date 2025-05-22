@@ -10,14 +10,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/AuthContext"
 
-export function ProfilePage() {
+export function ProfileCard() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
 
   const handleSignOut = async () => {
     try {
       await signOut()
-      navigate({ to: "/auth" })
+      navigate({ to: "/" })
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error)
     }
@@ -26,7 +26,6 @@ export function ProfilePage() {
   console.log(user)
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Profil</CardTitle>
@@ -69,6 +68,5 @@ export function ProfilePage() {
           </Button>
         </CardContent>
       </Card>
-    </div>
   )
 } 
