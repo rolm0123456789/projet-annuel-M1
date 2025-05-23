@@ -22,15 +22,11 @@ const homeRoute = createRoute({
 
 const productRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/product/$id',
+  path: '/products/$id',
   component: ProductPage,
 });
 
-const categoryRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/categorie/$name',
-  component: CategoryPage,
-});
+const categoryRoute = createRoute({  getParentRoute: () => rootRoute,  path: '/categorie/$name',  component: CategoryPage,});const categorySlugRoute = createRoute({  getParentRoute: () => rootRoute,  path: '/categories/$slug',  component: CategoryPage,});
 
 const categoriesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -64,14 +60,6 @@ const accountRoute = createRoute({
   component: AccountPage,
 });
 
-export const routeTree = rootRoute.addChildren([
-  homeRoute,
-  productRoute,
-  categoryRoute,
-  categoriesRoute,
-  loginRoute,
-  signUpRoute,
-  accountRoute,
-]);
+export const routeTree = rootRoute.addChildren([  homeRoute,  productRoute,  categoryRoute,  categorySlugRoute,  categoriesRoute,  loginRoute,  signUpRoute,  accountRoute,]);
 
 export const router = createRouter({ routeTree });
