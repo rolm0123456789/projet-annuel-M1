@@ -64,7 +64,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <CardContent className="p-0">
         {/* Image */}
-        <Link to={`/products/${product.id}`} className="block px-4 pt-4">
+        <Link to={`/products/${product.id}`} className="block">
           <div className="aspect-square overflow-hidden rounded-lg">
             <img
               src={product.image}

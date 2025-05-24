@@ -38,7 +38,7 @@ export default function CategoriesPage() {
                             >
                                 <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg group-hover:scale-[1.02] bg-card border">
                                     {/* Image de la catégorie */}
-                                    <div className="aspect-video overflow-hidden relative">
+                                    <div className="aspect-video overflow-hidden relative rounded-lg">
                                         <img
                                             src={category.image}
                                             alt={category.name}
