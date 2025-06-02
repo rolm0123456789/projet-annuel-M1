@@ -13,21 +13,42 @@ public class WeatherForecastController : ControllerBase
     };
 
     private readonly ILogger<WeatherForecastController> _logger;
+    private readonly HttpClient _client;
 
-    public WeatherForecastController(ILogger<WeatherForecastController> logger)
+
+    public WeatherForecastController(ILogger<WeatherForecastController> logger, IHttpClientFactory clientFactory)
     {
         _logger = logger;
+        _client = clientFactory.CreateClient("gateway");
     }
 
     [HttpGet(Name = "GetWeatherForecast")]
-    public IEnumerable<WeatherForecast> Get()
+    public async Task<IActionResult> Get()
     {
-        return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+        var commandeTask = _client.GetAsync("api/service/WeatherForecast");
+        var reviewTask = _client.GetAsync("api/review/WeatherForecast");
+
+        // Attend que les deux réponses soient terminées
+        await Task.WhenAll(commandeTask, reviewTask);
+
+        // Récupère les résultats
+        var commandeResponse = await commandeTask;
+        var reviewResponse = await reviewTask;
+
+        // Lecture des données JSON en parallèle également (optionnel mais cohérent)
+        var commandeReadTask = commandeResponse.Content.ReadFromJsonAsync<WeatherForecast[]>();
+        var reviewReadTask = reviewResponse.Content.ReadFromJsonAsync<WeatherForecast[]>();
+
+        await Task.WhenAll(commandeReadTask, reviewReadTask);
+
+        var commandeData = await commandeReadTask;
+        var reviewData = await reviewReadTask;
+
+        return Ok(new
         {
-            Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-        })
-        .ToArray();
+            Commande = commandeData,
+            Review = reviewData
+        });
     }
+
 }

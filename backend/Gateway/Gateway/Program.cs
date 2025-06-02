@@ -46,6 +46,13 @@
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHttpClient();
+
+builder.Services.AddHttpClient("gateway", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7299/");
+});
+
 // Ajoute les contrôleurs
 builder.Services.AddControllers();
 
