@@ -45,6 +45,7 @@ Thumbs.db
 *.pid.lock
 
 
+test/*
 
 # Created by https://www.toptal.com/developers/gitignore/api/dotnetcore,aspnetcore,csharp,visualstudio
 # Edit at https://www.toptal.com/developers/gitignore?templates=dotnetcore,aspnetcore,csharp,visualstudio
