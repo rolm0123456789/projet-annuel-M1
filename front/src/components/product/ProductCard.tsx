@@ -135,7 +135,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <CardFooter className="p-4 pt-0">
         {isInCart(product.id) ? (
-          <div className="w-full flex items-center justify-between">
+          <div className="w-full flex items-center justify-center gap-6 ">
             <Button 
               size="sm"
               variant="outline"
