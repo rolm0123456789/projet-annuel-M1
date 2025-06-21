@@ -18,11 +18,7 @@ export function CartItem({ item, onUpdateQuantity, onRemoveItem }: CartItemProps
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = Math.max(0, item.quantity + change);
-    if (newQuantity === 0) {
-      onRemoveItem(item.id);
-    } else {
-      onUpdateQuantity(item.id, newQuantity);
-    }
+    onUpdateQuantity(item.id, newQuantity);
   };
 
   return (

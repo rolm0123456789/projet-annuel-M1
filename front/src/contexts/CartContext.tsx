@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, ReactNode } from 'react';
+import { createContext, useContext, useReducer } from 'react';
+import type { ReactNode } from 'react';
 import type { Cart, CartItem, Product } from '@/types/product';
 
 interface CartContextType {
@@ -21,6 +22,8 @@ const initialCart: Cart = {
   items: [],
   total: 0,
   totalItems: 0,
+  createdAt: new Date(),
+  updatedAt: new Date(),
 };
 
 function cartReducer(state: Cart, action: CartAction): Cart {

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { Star, ShoppingCart, Heart } from 'lucide-react';
+import { Star, ShoppingCart, Heart, Minus, Plus } from 'lucide-react';
 import type { Product } from '@/types/product';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,16 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate();
-  const { addToCart, isInCart, getItemQuantity } = useCart();
+  const { addToCart, isInCart, getItemQuantity, updateQuantity } = useCart();
   
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation(); // Empêche la navigation vers la page produit
     addToCart(product);
+  };
+
+  const handleRemoveFromCart = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Empêche la navigation vers la page produit
+    updateQuantity(product.id, getItemQuantity(product.id) - 1);
   };
 
   const formatPrice = (price: number) => {
@@ -131,16 +136,22 @@ export function ProductCard({ product }: ProductCardProps) {
       <CardFooter className="p-4 pt-0">
         {isInCart(product.id) ? (
           <div className="w-full flex items-center justify-between">
+            <Button 
+              size="sm"
+              variant="outline"
+              onClick={handleRemoveFromCart}
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
             <span className="text-sm font-medium">
-              Dans le panier ({getItemQuantity(product.id)})
+              {getItemQuantity(product.id)}
             </span>
             <Button 
               size="sm"
               onClick={handleAddToCart}
               disabled={!product.inStock}
             >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Ajouter +1
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
         ) : (
