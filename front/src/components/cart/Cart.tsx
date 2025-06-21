@@ -13,16 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { CartItem } from './CartItem';
-import type { Cart as CartType } from '@/types/product';
+import { useCart } from '@/contexts/CartContext';
 
-interface CartProps {
-  cart: CartType;
-  onUpdateQuantity: (itemId: string, quantity: number) => void;
-  onRemoveItem: (itemId: string) => void;
-  onClearCart: () => void;
-}
-
-export function Cart({ cart, onUpdateQuantity, onRemoveItem, onClearCart }: CartProps) {
+export function Cart() {
+  const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
   const [isOpen, setIsOpen] = useState(false);
 
   const formatPrice = (price: number) => {
@@ -83,14 +77,14 @@ export function Cart({ cart, onUpdateQuantity, onRemoveItem, onClearCart }: Cart
             <>
               <div className="flex-1 overflow-auto py-4">
                 <div className="px-4 space-y-4">
-                  {cart.items.map((item) => (
-                    <CartItem
-                      key={item.id}
-                      item={item}
-                      onUpdateQuantity={onUpdateQuantity}
-                      onRemoveItem={onRemoveItem}
-                    />
-                  ))}
+                                      {cart.items.map((item) => (
+                      <CartItem
+                        key={item.id}
+                        item={item}
+                        onUpdateQuantity={updateQuantity}
+                        onRemoveItem={removeFromCart}
+                      />
+                    ))}
                 </div>
               </div>
 
@@ -121,7 +115,7 @@ export function Cart({ cart, onUpdateQuantity, onRemoveItem, onClearCart }: Cart
                       <Button 
                         variant="ghost" 
                         className="flex-1 text-destructive hover:text-destructive"
-                        onClick={onClearCart}
+                        onClick={clearCart}
                       >
                         Vider le panier
                       </Button>

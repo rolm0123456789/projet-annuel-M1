@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from '@tanstack/react-router';
+import { useCart } from '@/contexts/CartContext';
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,13 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate();
+  const { addToCart, isInCart, getItemQuantity } = useCart();
+  
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Empêche la navigation vers la page produit
+    addToCart(product);
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -121,14 +129,31 @@ export function ProductCard({ product }: ProductCardProps) {
       </CardContent>
 
       <CardFooter className="p-4 pt-0">
-        <Button 
-          className="w-full" 
-          disabled={!product.inStock}
-          variant={product.inStock ? "default" : "secondary"}
-        >
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          {product.inStock ? 'Ajouter au panier' : 'Indisponible'}
-        </Button>
+        {isInCart(product.id) ? (
+          <div className="w-full flex items-center justify-between">
+            <span className="text-sm font-medium">
+              Dans le panier ({getItemQuantity(product.id)})
+            </span>
+            <Button 
+              size="sm"
+              onClick={handleAddToCart}
+              disabled={!product.inStock}
+            >
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Ajouter +1
+            </Button>
+          </div>
+        ) : (
+          <Button 
+            className="w-full" 
+            disabled={!product.inStock}
+            variant={product.inStock ? "default" : "secondary"}
+            onClick={handleAddToCart}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            {product.inStock ? 'Ajouter au panier' : 'Indisponible'}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

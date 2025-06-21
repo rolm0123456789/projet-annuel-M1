@@ -19,24 +19,8 @@ import {
 import { SearchCommand } from '@/components/search/SearchCommand';
 import { Cart } from '@/components/cart';
 import { mockCategories, getCategoryIcon } from '@/data/mockCategories';
-import { mockCart } from '@/data/mockCart';
 
 export function Header() {
-  // Fonctions de gestion du panier (à remplacer par votre logique de state management)
-  const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    console.log('Update quantity:', itemId, quantity);
-    // TODO: Implémenter la logique de mise à jour de quantité
-  };
-
-  const handleRemoveItem = (itemId: string) => {
-    console.log('Remove item:', itemId);
-    // TODO: Implémenter la logique de suppression d'article
-  };
-
-  const handleClearCart = () => {
-    console.log('Clear cart');
-    // TODO: Implémenter la logique de vidage du panier
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -94,12 +78,7 @@ export function Header() {
           <SearchCommand />
 
           {/* Panier */}
-          <Cart 
-            cart={mockCart}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveItem}
-            onClearCart={handleClearCart}
-          />
+          <Cart />
 
           {/* Mon compte - Desktop */}
           <Button variant="ghost" asChild className="hidden md:flex">
