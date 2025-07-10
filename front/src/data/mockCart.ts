@@ -14,6 +14,13 @@ export const mockCartItems: CartItem[] = [
     price: 279.99,
     quantity: 2,
     image: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?w=400&h=400&fit=crop&crop=center'
+  },
+  {
+    id: '3',
+    name: 'Apple Watch Series 8',
+    price: 599.99,
+    quantity: 1,
+    image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop&crop=center'
   }
 ];
 
