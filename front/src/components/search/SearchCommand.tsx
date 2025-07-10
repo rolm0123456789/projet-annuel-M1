@@ -17,7 +17,7 @@ export function SearchCommand() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   
-  const platform = navigator?.userAgentData?.platform.toLowerCase() || "no-platform";
+  const platform = navigator?.userAgent.toLowerCase() || "no-platform";
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
