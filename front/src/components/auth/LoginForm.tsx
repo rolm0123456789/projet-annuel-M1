@@ -44,8 +44,8 @@ export function LoginForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+    <div className={cn("flex flex-col justify-center items-center gap-6 ", className)} {...props}>
+      <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-2xl">Connexion</CardTitle>
           <CardDescription>
