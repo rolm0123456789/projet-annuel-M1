@@ -62,4 +62,7 @@ const accountRoute = createRoute({
 
 export const routeTree = rootRoute.addChildren([  homeRoute,  productRoute,  categoryRoute,  categorySlugRoute,  categoriesRoute,  loginRoute,  signUpRoute,  accountRoute,]);
 
-export const router = createRouter({ routeTree });
+export const router = createRouter({ 
+  routeTree,
+  scrollRestoration: true,
+});
