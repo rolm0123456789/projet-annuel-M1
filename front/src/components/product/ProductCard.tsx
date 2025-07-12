@@ -1,11 +1,11 @@
 import { Link } from '@tanstack/react-router';
-import { Star, ShoppingCart, Heart, Minus, Plus } from 'lucide-react';
+import { Star, Heart } from 'lucide-react';
 import type { Product } from '@/types/product';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from '@tanstack/react-router';
-import { useCart } from '@/contexts/CartContext';
+import { ProductAdd } from './ProductAdd';
 
 interface ProductCardProps {
   product: Product;
@@ -13,17 +13,6 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate();
-  const { addToCart, isInCart, getItemQuantity, updateQuantity } = useCart();
-  
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Empêche la navigation vers la page produit
-    addToCart(product);
-  };
-
-  const handleRemoveFromCart = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Empêche la navigation vers la page produit
-    updateQuantity(product.id, getItemQuantity(product.id) - 1);
-  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -133,38 +122,8 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0">
-        {isInCart(product.id) ? (
-          <div className="w-full flex items-center justify-center gap-6 ">
-            <Button 
-              size="sm"
-              variant="outline"
-              onClick={handleRemoveFromCart}
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium">
-              {getItemQuantity(product.id)}
-            </span>
-            <Button 
-              size="sm"
-              onClick={handleAddToCart}
-              disabled={!product.inStock}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <Button 
-            className="w-full" 
-            disabled={!product.inStock}
-            variant={product.inStock ? "default" : "secondary"}
-            onClick={handleAddToCart}
-          >
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            {product.inStock ? 'Ajouter au panier' : 'Indisponible'}
-          </Button>
-        )}
+      <CardFooter className="p-4 pt-0 justify-center">
+        <ProductAdd product={product} />
       </CardFooter>
     </Card>
   );
