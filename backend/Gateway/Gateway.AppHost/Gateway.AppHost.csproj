@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Gateway\Gateway.csproj" />
     <ProjectReference Include="..\NotificationService\NotificationService.csproj" />
     <ProjectReference Include="..\ReviewService\ReviewService.csproj" />
+    <ProjectReference Include="..\SignalRService\SignalRService.csproj" />
   </ItemGroup>
 
 </Project>
