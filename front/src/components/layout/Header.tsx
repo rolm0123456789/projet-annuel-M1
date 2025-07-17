@@ -17,9 +17,11 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { SearchCommand } from '@/components/search/SearchCommand';
+import { Cart } from '@/components/cart';
 import { mockCategories, getCategoryIcon } from '@/data/mockCategories';
 
 export function Header() {
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 w-full items-center justify-between px-4">
@@ -74,6 +76,9 @@ export function Header() {
         <div className="flex items-center space-x-2">
           {/* Recherche */}
           <SearchCommand />
+
+          {/* Panier */}
+          <Cart />
 
           {/* Mon compte - Desktop */}
           <Button variant="ghost" asChild className="hidden md:flex">

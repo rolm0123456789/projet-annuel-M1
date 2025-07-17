@@ -27,4 +27,20 @@ export interface ProductCategory {
   slug: string;
   description?: string;
   image?: string;
-} 
+}
+
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+}
+
+export interface Cart {
+  items: CartItem[];
+  total: number;
+  totalItems: number;
+  createdAt: Date;
+  updatedAt: Date;
+}

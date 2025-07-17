@@ -20,6 +20,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProductGrid } from '@/components/product';
 import { mockProducts } from '@/data/mockProducts';
 import { getCategoryIcon } from '@/data/mockCategories';
+import { useCart } from '@/contexts/CartContext';
+import type { Product } from '@/types/product';
 
 export default function ProductPage() {
     const params = useParams({ strict: false });
@@ -30,6 +32,12 @@ export default function ProductPage() {
 
     // Trouver le produit
     const product = mockProducts.find(p => p.id === productId);
+    const { addToCart } = useCart();
+
+
+    const handleAddToCart = (product: Product, quantity: number) => {
+        addToCart(product, quantity);
+    };
 
     if (!product) {
         return (
@@ -255,6 +263,9 @@ export default function ProductPage() {
                                     size="lg" 
                                     className="flex-1"
                                     disabled={!product.inStock}
+                                    onClick={() => {
+                                        handleAddToCart(product, quantity);
+                                    }}
                                 >
                                     <ShoppingCart className="mr-2 h-4 w-4" />
                                     {product.inStock ? 'Ajouter au panier' : 'Indisponible'}

@@ -1,10 +1,11 @@
 import { Link } from '@tanstack/react-router';
-import { Star, ShoppingCart, Heart } from 'lucide-react';
+import { Star, Heart } from 'lucide-react';
 import type { Product } from '@/types/product';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from '@tanstack/react-router';
+import { ProductAdd } from './ProductAdd';
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate();
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -120,15 +122,8 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0">
-        <Button 
-          className="w-full" 
-          disabled={!product.inStock}
-          variant={product.inStock ? "default" : "secondary"}
-        >
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          {product.inStock ? 'Ajouter au panier' : 'Indisponible'}
-        </Button>
+      <CardFooter className="p-4 pt-0 justify-center">
+        <ProductAdd product={product} />
       </CardFooter>
     </Card>
   );
