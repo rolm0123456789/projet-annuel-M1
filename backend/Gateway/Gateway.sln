@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRService", "SignalRSe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Model", "Model\Model.csproj", "{B0F851A2-6DDE-4EAD-AC06-9D3C006BCAF4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthService", "AuthService\AuthService.csproj", "{6CDAB7B3-DE4F-6FF5-06F0-D824F083F1AF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{B0F851A2-6DDE-4EAD-AC06-9D3C006BCAF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0F851A2-6DDE-4EAD-AC06-9D3C006BCAF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0F851A2-6DDE-4EAD-AC06-9D3C006BCAF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CDAB7B3-DE4F-6FF5-06F0-D824F083F1AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CDAB7B3-DE4F-6FF5-06F0-D824F083F1AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CDAB7B3-DE4F-6FF5-06F0-D824F083F1AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CDAB7B3-DE4F-6FF5-06F0-D824F083F1AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
