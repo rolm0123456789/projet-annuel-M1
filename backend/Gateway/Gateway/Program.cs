@@ -1,75 +1,84 @@
-/// Fonctionne avec log
-//using Gateway.Configuration;
-//using Gateway.Resources;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
-//var builder = WebApplication.CreateBuilder(args);
-//var services = builder.Services;
-
-//// Configuration
-//var config = ReverseProxyConfiguration.Configure();
-
-//// Dependencies injection
-//services.AddDefaultLogging(config);
-//services.AddYarpReverseProxy(builder);
-//services.AddHttpLogging(httpLogger =>
-//{
-//    httpLogger.CombineLogs = true;
-//});
-
-//var app = builder.Build();
-
-//app.UseRouting();
-//app.UseWebSockets();
-//app.UseResponseCompression();
-//app.UseHttpLogging();
-//app.UseHealthChecks(Settings.HealthEndpoint);
-//app.UseCertificateForwarding();
-//app.UseResponseCaching();
-
-//// Register the reverse proxy routes
-//app.MapReverseProxy();
-
-//app.Logger.LogInformation(
-//    message: Logs.Welcome,
-//    DateTime.Now.ToShortTimeString());
-
-//app.Run();
-
-
-/// Fontionne Sans log
-//var builder = WebApplication.CreateBuilder(args);
-//builder.Services.AddReverseProxy()
-//    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
-//var app = builder.Build();
-//app.MapReverseProxy();
-//app.Run();
+Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true; // Debug (optionnel)
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseKestrel();
 
-builder.Services.AddHttpClient();
-
-builder.Services.AddHttpClient("gateway", client =>
-{
-    client.BaseAddress = new Uri("https://localhost:7299/");
-});
-
-// Ajoute les contrôleurs
-builder.Services.AddControllers();
-
-// Ajoute tes clients HTTP si tu en as (ex. : vers microservices)
-//builder.Services.AddHttpClient<CommandeClient>();
-//builder.Services.AddHttpClient<UtilisateurClient>();
-
-// Ajoute YARP
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
+// Configuration CORS pour autoriser tous les domaines
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
+// Cl secrte EXACTEMENT comme dans Flask
+var secret = "supersecretkey123456789001eoinvlovleanvkenvnelkvnelvnm";
+var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = key,
+            RequireSignedTokens = true,
+            ValidateActor = false,
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine("AUTH ERROR: " + context.Exception.ToString());
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Authenticated", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+    });
+});
+
+builder.Services.AddHttpClient();
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
-// Mappe les routes des contrôleurs
-app.MapControllers();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-// Mappe YARP
+app.UseHttpsRedirection();
+
+// Activer CORS avant l'authentification
+app.UseCors();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
 app.MapReverseProxy();
 
 app.Run();

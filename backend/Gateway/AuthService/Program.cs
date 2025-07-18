@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.WebHost.UseKestrel();
 // Add services
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlite("Data Source=auth.db"));

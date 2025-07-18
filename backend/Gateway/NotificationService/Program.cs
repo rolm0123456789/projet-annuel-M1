@@ -1,6 +1,5 @@
 var builder = WebApplication.CreateBuilder(args);
-
-builder.AddServiceDefaults();
+builder.WebHost.UseKestrel();
 
 
 builder.Services.AddControllers();
@@ -9,7 +8,6 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-app.MapDefaultEndpoints();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

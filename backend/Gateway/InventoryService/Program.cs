@@ -3,7 +3,7 @@ using InventoryService.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.WebHost.UseKestrel();
 // Add services
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite("Data Source=Inventory.db"));
