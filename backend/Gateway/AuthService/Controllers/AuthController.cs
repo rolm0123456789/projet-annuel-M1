@@ -28,7 +28,7 @@ namespace AuthService.Controllers
 
             var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
-            var user = new User { Email = dto.Email, PasswordHash = hash };
+            var user = new User { Email = dto.Email, PasswordHash = hash, Role = "Admin" };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 

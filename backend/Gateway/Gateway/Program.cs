@@ -22,23 +22,19 @@ builder.Services.AddCors(options =>
 });
 
 // Cl secrte EXACTEMENT comme dans Flask
-var secret = "supersecretkey123456789001eoinvlovleanvkenvnelkvnelvnm";
-var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = key,
-            RequireSignedTokens = true,
-            ValidateActor = false,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
-
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
@@ -55,6 +51,7 @@ builder.Services.AddAuthorization(options =>
     {
         policy.RequireAuthenticatedUser();
     });
+    options.AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"));
 });
 
 builder.Services.AddHttpClient();

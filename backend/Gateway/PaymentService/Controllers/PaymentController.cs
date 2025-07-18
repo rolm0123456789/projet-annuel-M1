@@ -1,7 +1,8 @@
-using PaymentService.Data;
-using PaymentService.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PaymentService.Data;
+using PaymentService.Models;
 
 namespace PaymentService.Controllers
 {
