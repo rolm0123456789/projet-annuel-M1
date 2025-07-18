@@ -1,3 +1,3 @@
 # Projet e-commerce
 
-dotnet ef migrations add
+dotnet ef migrations add Init
