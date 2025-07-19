@@ -1,85 +1,71 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
-import type { User, Session } from '@supabase/supabase-js';
+import { authService, type User } from '../lib/auth-service';
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  getToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Récupérer la session initiale
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
-
-    // Écouter les changements d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    // Récupérer l'utilisateur depuis le service au démarrage
+    const currentUser = authService.getUser();
+    setUser(currentUser);
+    setIsLoading(false);
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      throw error;
-    }
+    await authService.signIn(email, password);
+    const user = authService.getUser();
+    setUser(user);
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) {
-      throw error;
-    }
+    await authService.signUp(email, password);
+    // Note: Après l'inscription, l'utilisateur doit se connecter
+    // Le backend ne retourne pas automatiquement un token après inscription
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
-    }
+    await authService.signOut();
+    setUser(null);
+  };
+
+  const getToken = () => {
+    return authService.getToken();
   };
 
   if (isLoading) {
-    return <div>Chargement...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <AuthContext.Provider 
       value={{ 
         user, 
-        session,
         signIn, 
         signUp, 
         signOut, 
-        isAuthenticated: !!user 
+        isAuthenticated: authService.isAuthenticated(),
+        isLoading,
+        getToken
       }}
     >
       {children}

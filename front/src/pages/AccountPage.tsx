@@ -2,8 +2,7 @@ import { ProfileCard } from "@/components/profile/ProfileCard";
 
 export default function AccountPage() {
     return (
-        <div>
-            <h1 className="text-2xl font-bold">Account</h1>
+        <div className="flex flex-col items-center justify-center">
             <ProfileCard />
         </div>
     )

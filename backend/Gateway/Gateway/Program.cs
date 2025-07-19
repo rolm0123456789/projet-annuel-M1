@@ -122,7 +122,7 @@ app.MapReverseProxy(proxyPipeline =>
         var userId = context.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                   ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        // Ajoute l'ID utilisateur à l'en-tête
+        // Ajoute l'ID utilisateur ï¿½ l'en-tï¿½te
         if (!string.IsNullOrEmpty(userId))
         {
             context.Request.Headers["X-User-Id"] = userId;

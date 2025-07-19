@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { ShoppingBag, User, Menu } from 'lucide-react';
+import { ShoppingBag, User, Menu, LogOut, LogIn } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -16,11 +16,23 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+
 import { SearchCommand } from '@/components/search/SearchCommand';
 import { Cart } from '@/components/cart';
 import { mockCategories, getCategoryIcon } from '@/data/mockCategories';
+import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function Header() {
+  const { isAuthenticated, user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,18 +60,18 @@ export function Header() {
                         <NavigationMenuLink key={category.id} asChild>
                           <Link
                             to={`/categories/${category.slug}`}
-                            className="flex items-start space-x-3 select-none rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            className="group grid h-auto w-full items-center justify-start gap-1 rounded-md bg-background p-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
                           >
-                            <div className="rounded-md bg-primary/10 p-2">
-                              <IconComponent className="h-4 w-4 text-primary" />
-                            </div>
-                            <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className="rounded bg-primary/10 p-1">
+                                <IconComponent className="h-4 w-4 text-primary" />
+                              </div>
                               <div className="text-sm font-medium leading-none">
                                 {category.name}
                               </div>
-                              <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                                {category.description}
-                              </p>
+                            </div>
+                            <div className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                              {category.description}
                             </div>
                           </Link>
                         </NavigationMenuLink>
@@ -80,13 +92,36 @@ export function Header() {
           {/* Panier */}
           <Cart />
 
-          {/* Mon compte - Desktop */}
-          <Button variant="ghost" asChild className="hidden md:flex">
-            <Link to="/account" className="flex items-center space-x-2">
-              <User className="h-4 w-4" />
-              <span>Mon compte</span>
-            </Link>
-          </Button>
+          {/* Authentification - Desktop */}
+          {isAuthenticated ? (
+            <div className="hidden md:flex items-center space-x-2">
+              <Button variant="ghost" asChild>
+                <Link to="/account" className="flex items-center space-x-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-xs">
+                      {user?.email?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="max-w-[100px] truncate">{user?.email}</span>
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-red-600">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="hidden md:flex items-center space-x-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/login" className="flex items-center space-x-2">
+                  <LogIn className="h-4 w-4" />
+                  <span>Connexion</span>
+                </Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link to="/signup">S'inscrire</Link>
+              </Button>
+            </div>
+          )}
 
           {/* Menu Mobile */}
           <Sheet>
@@ -126,15 +161,54 @@ export function Header() {
                   })}
                 </div>
                 
-                {/* Autres liens */}
+                {/* Menu utilisateur mobile */}
                 <div className="border-t pt-4">
-                  <Link
-                    to="/account"
-                    className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>Mon compte</span>
-                  </Link>
+                  {isAuthenticated ? (
+                    <>
+                      <div className="flex items-center space-x-3 px-3 py-2 mb-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {user?.email?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{user?.email}</p>
+                          <p className="text-xs text-muted-foreground">{user?.role}</p>
+                        </div>
+                      </div>
+                      <Link
+                        to="/account"
+                        className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <User className="h-4 w-4" />
+                        <span>Mon compte</span>
+                      </Link>
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground text-red-600 w-full text-left"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Se déconnecter</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        to="/login"
+                        className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <LogIn className="h-4 w-4" />
+                        <span>Connexion</span>
+                      </Link>
+                      <Link
+                        to="/signup"
+                        className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <User className="h-4 w-4" />
+                        <span>S'inscrire</span>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </nav>
             </SheetContent>

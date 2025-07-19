@@ -1,6 +1,6 @@
 // src/routes.tsx
 import { createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router';
-import { supabase } from '@/lib/supabase';
+import { authService } from '@/lib/auth-service';
 import { RootLayout } from '@/layouts/RootLayout';
 import Home from '@/pages/Home';
 import ProductPage from '@/pages/ProductPage';
@@ -14,6 +14,7 @@ const rootRoute = createRootRoute({
   component: RootLayout,
 });
 
+// Routes publiques (pas besoin d'authentification)
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
@@ -26,7 +27,17 @@ const productRoute = createRoute({
   component: ProductPage,
 });
 
-const categoryRoute = createRoute({  getParentRoute: () => rootRoute,  path: '/categorie/$name',  component: CategoryPage,});const categorySlugRoute = createRoute({  getParentRoute: () => rootRoute,  path: '/categories/$slug',  component: CategoryPage,});
+const categoryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/categorie/$name',
+  component: CategoryPage,
+});
+
+const categorySlugRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/categories/$slug',
+  component: CategoryPage,
+});
 
 const categoriesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -38,29 +49,59 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   component: LoginPage,
+  beforeLoad: () => {
+    // Rediriger vers /account si déjà connecté
+    if (authService.isAuthenticated()) {
+      throw redirect({
+        to: '/account',
+      });
+    }
+  },
 });
 
 const signUpRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/signup',
   component: SignUpPage,
+  beforeLoad: () => {
+    // Rediriger vers /account si déjà connecté
+    if (authService.isAuthenticated()) {
+      throw redirect({
+        to: '/account',
+      });
+    }
+  },
 });
 
+// Routes protégées (authentification requise)
 const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/account',
-  beforeLoad: async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+  beforeLoad: () => {
+    // Vérifier l'authentification
+    if (!authService.isAuthenticated()) {
       throw redirect({
         to: '/login',
-      })
+        search: {
+          // Optionnel: ajouter une redirection après connexion
+          redirect: '/account',
+        },
+      });
     }
   },
   component: AccountPage,
 });
 
-export const routeTree = rootRoute.addChildren([  homeRoute,  productRoute,  categoryRoute,  categorySlugRoute,  categoriesRoute,  loginRoute,  signUpRoute,  accountRoute,]);
+export const routeTree = rootRoute.addChildren([
+  homeRoute,
+  productRoute,
+  categoryRoute,
+  categorySlugRoute,
+  categoriesRoute,
+  loginRoute,
+  signUpRoute,
+  accountRoute,
+]);
 
 export const router = createRouter({ 
   routeTree,
