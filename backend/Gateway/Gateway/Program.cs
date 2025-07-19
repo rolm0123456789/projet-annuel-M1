@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 
 Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true; // Debug (optionnel)
@@ -76,6 +79,57 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapReverseProxy();
+
+var protectedRoutes = new List<(string path, string method, string policy)>
+{
+    ("/api/payments/Payment", "GET", "RequireAdmin"),
+    //("/api/payments/Payment", "POST", "RequireAdmin"),
+    //("/api/payments/Payment", "PATCH", "RequireAdmin"),
+    //("/api/orders/place", "POST", "Authenticated"),
+    //("/api/orders/cancel", "PATCH", "Authenticated"),
+    //("/api/users/delete", "DELETE", "RequireAdmin")
+};
+
+
+app.MapReverseProxy(proxyPipeline =>
+{
+    proxyPipeline.Use(async (context, next) =>
+    {
+        var requestPath = context.Request.Path.Value;
+        var requestMethod = context.Request.Method.ToUpperInvariant();
+
+        var match = protectedRoutes.FirstOrDefault(r =>
+            r.path.Equals(requestPath, StringComparison.OrdinalIgnoreCase) &&
+            r.method.Equals(requestMethod, StringComparison.OrdinalIgnoreCase)
+        );
+
+        if (!string.IsNullOrEmpty(match.path))
+        {
+            var authService = context.RequestServices.GetRequiredService<IAuthorizationService>();
+            var result = await authService.AuthorizeAsync(context.User, null, match.policy);
+
+            if (!result.Succeeded)
+            {
+                context.Response.StatusCode = match.policy == "RequireAdmin" ? 403 : 401;
+                await context.Response.WriteAsync(
+                    match.policy == "RequireAdmin"
+                        ? "Access Denied: Admin only."
+                        : "Unauthorized: Authentication required."
+                );
+                return;
+            }
+        }
+        var userId = context.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                  ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        // Ajoute l'ID utilisateur à l'en-tête
+        if (!string.IsNullOrEmpty(userId))
+        {
+            context.Request.Headers["X-User-Id"] = userId;
+        }
+
+        await next();
+    });
+});
 
 app.Run();
