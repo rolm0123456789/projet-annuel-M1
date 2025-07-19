@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { ShoppingBag, User, Menu, LogOut, LogIn } from 'lucide-react';
+import { ShoppingBag, User, Menu, LogOut, LogIn, Shield } from 'lucide-react';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -24,7 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function Header() {
-  const { isAuthenticated, user, signOut } = useAuth();
+  const { isAuthenticated, user, isAdmin, signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
@@ -176,13 +176,29 @@ export function Header() {
                           <p className="text-xs text-muted-foreground">{user?.role}</p>
                         </div>
                       </div>
-                      <Link
-                        to="/account"
-                        className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <User className="h-4 w-4" />
-                        <span>Mon compte</span>
-                      </Link>
+                                              <Link
+                          to="/account"
+                          className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                          <User className="h-4 w-4" />
+                          <span>Mon compte</span>
+                        </Link>
+                        <Link
+                          to="/orders"
+                          className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                          <ShoppingBag className="h-4 w-4" />
+                          <span>Mes commandes</span>
+                        </Link>
+                        {isAdmin && (
+                          <Link
+                            to="/admin"
+                            className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground text-blue-600"
+                          >
+                            <Shield className="h-4 w-4" />
+                            <span>Administration</span>
+                          </Link>
+                        )}
                       <button
                         onClick={handleSignOut}
                         className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground text-red-600 w-full text-left"

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, CreditCard, UserX } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -14,10 +14,16 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { CartItem } from './CartItem';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { orderService } from '@/lib/order-service';
+import { Link, useNavigate } from '@tanstack/react-router';
 
 export function Cart() {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { isAuthenticated, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const navigate = useNavigate();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -26,7 +32,33 @@ export function Cart() {
     }).format(price);
   };
 
+  const handleCreateOrder = async () => {
+    if (!isAuthenticated || !user) {
+      // Rediriger vers la page de connexion
+      setIsOpen(false);
+      navigate({ to: '/login' });
+      return;
+    }
 
+    setIsCreatingOrder(true);
+    try {
+      await orderService.createOrderFromCart(cart.items);
+      
+      // Succès : vider le panier et fermer le sheet
+      clearCart();
+      setIsOpen(false);
+      
+      // Optionnel : afficher un message de succès ou rediriger vers les commandes
+      navigate({ to: '/account' }); // On redirige vers le compte où on affichera les commandes
+      
+    } catch (error) {
+      console.error('Erreur lors de la création de la commande:', error);
+      // TODO: Afficher un toast d'erreur
+      alert(error instanceof Error ? error.message : 'Erreur lors de la création de la commande');
+    } finally {
+      setIsCreatingOrder(false);
+    }
+  };
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -77,31 +109,68 @@ export function Cart() {
             <>
               <div className="flex-1 overflow-auto py-4">
                 <div className="px-4 space-y-4">
-                                      {cart.items.map((item) => (
-                      <CartItem
-                        key={item.id}
-                        item={item}
-                        onUpdateQuantity={updateQuantity}
-                        onRemoveItem={removeFromCart}
-                      />
-                    ))}
+                  {cart.items.map((item) => (
+                    <CartItem
+                      key={item.id}
+                      item={item}
+                      onUpdateQuantity={updateQuantity}
+                      onRemoveItem={removeFromCart}
+                    />
+                  ))}
                 </div>
               </div>
 
-            <SheetFooter>
-              <div className="border-t pt-4 mt-4">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center text-lg font-semibold">
-                    <span>Total</span>
-                    <span>{formatPrice(cart.total)}</span>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-2">
-                    <Button className="w-full" size="lg">
-                      Procéder au paiement
-                    </Button>
+              <SheetFooter>
+                <div className="border-t pt-4 mt-4">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center text-lg font-semibold">
+                      <span>Total</span>
+                      <span>{formatPrice(cart.total)}</span>
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* Affichage conditionnel selon l'authentification */}
+                    {!isAuthenticated ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                          <UserX className="h-4 w-4" />
+                          <span>Connexion requise pour commander</span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Button className="w-full" asChild>
+                            <Link to="/login">
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Se connecter pour commander
+                            </Link>
+                          </Button>
+                          
+                          <div className="text-center text-xs text-muted-foreground">
+                            Pas de compte ?{' '}
+                            <Link to="/signup" className="underline hover:text-foreground">
+                              S'inscrire ici
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Button 
+                          className="w-full" 
+                          size="lg"
+                          onClick={handleCreateOrder}
+                          disabled={isCreatingOrder}
+                        >
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          {isCreatingOrder ? 'Création de la commande...' : 'Passer la commande'}
+                        </Button>
+                        
+                        <div className="text-center text-xs text-muted-foreground">
+                          Connecté en tant que {user?.email}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex space-x-2">
                       <Button 
@@ -122,7 +191,6 @@ export function Cart() {
                     </div>
                   </div>
                 </div>
-              </div>
               </SheetFooter>
             </>
           )}

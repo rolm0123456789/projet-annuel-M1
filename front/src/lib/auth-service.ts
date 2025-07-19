@@ -31,11 +31,13 @@ class AuthService {
   private decodeAndSetUser(token: string) {
     try {
       // Décoder le JWT pour extraire les informations utilisateur
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const parts = token.split('.');
+      if (parts.length !== 3) throw new Error('Token JWT invalide');
+      const payload = JSON.parse(atob(parts[1] as string));
       this.user = {
-        id: parseInt(payload.sub),
-        email: payload.email,
-        role: payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
+        id: parseInt(payload.sub || '0'),
+        email: payload.email || '',
+        role: (payload.role as string) || (payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] as string) || 'User'
       };
     } catch (error) {
       console.error('Erreur lors du décodage du token:', error);
@@ -65,13 +67,13 @@ class AuthService {
     this.decodeAndSetUser(this.token);
   }
 
-  async signUp(email: string, password: string): Promise<void> {
+  async signUp(email: string, password: string, role: string = 'User'): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, role }),
     });
 
     if (!response.ok) {
@@ -96,6 +98,11 @@ class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.token && !!this.user;
+  }
+
+  isAdmin(): boolean {
+    console.log(this.user?.role);
+    return this.user?.role === 'admin' || this.user?.role === 'Admin';
   }
 
   // Méthode pour faire des requêtes authentifiées

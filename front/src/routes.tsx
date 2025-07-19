@@ -7,6 +7,8 @@ import ProductPage from '@/pages/ProductPage';
 import CategoryPage from '@/pages/CategoryPage';
 import CategoriesPage from '@/pages/CategoriesPage';
 import AccountPage from '@/pages/AccountPage';
+import OrdersPage from '@/pages/OrdersPage';
+import AdminPage from '@/pages/AdminPage';
 import LoginPage from '@/pages/LoginPage';
 import SignUpPage from '@/pages/SignUpPage';
 
@@ -92,6 +94,46 @@ const accountRoute = createRoute({
   component: AccountPage,
 });
 
+const ordersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/orders',
+  beforeLoad: () => {
+    // Vérifier l'authentification pour accéder aux commandes
+    if (!authService.isAuthenticated()) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: '/orders',
+        },
+      });
+    }
+  },
+  component: OrdersPage,
+});
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin',
+  beforeLoad: () => {
+    // Vérifier l'authentification et le rôle admin
+    if (!authService.isAuthenticated()) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: '/admin',
+        },
+      });
+    }
+    
+    if (!authService.isAdmin()) {
+      throw redirect({
+        to: '/',
+      });
+    }
+  },
+  component: AdminPage,
+});
+
 export const routeTree = rootRoute.addChildren([
   homeRoute,
   productRoute,
@@ -101,6 +143,8 @@ export const routeTree = rootRoute.addChildren([
   loginRoute,
   signUpRoute,
   accountRoute,
+  ordersRoute,
+  adminRoute,
 ]);
 
 export const router = createRouter({ 

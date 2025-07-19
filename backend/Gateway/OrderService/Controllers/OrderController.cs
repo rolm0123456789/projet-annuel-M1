@@ -14,13 +14,17 @@ namespace OrderService.Controllers
         public async Task<ActionResult<List<OrderModel>>> GetOrderModels()
         {
             return Ok(await _context.Orders
+                .Include(o => o.Items) // Inclure les items
                 .ToListAsync());
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<OrderModel>> GetOrderModelById(int id)
         {
-            var OrderModel = await _context.Orders.FindAsync(id);
+            var OrderModel = await _context.Orders
+                .Include(o => o.Items) // Inclure les items
+                .FirstOrDefaultAsync(o => o.Id == id);
+            
             if (OrderModel is null)
                 return NotFound();
 
@@ -36,7 +40,12 @@ namespace OrderService.Controllers
             _context.Orders.Add(newOrderModel);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetOrderModelById), new { id = newOrderModel.Id }, newOrderModel);
+            // Recharger avec les items pour la réponse
+            var createdOrder = await _context.Orders
+                .Include(o => o.Items)
+                .FirstOrDefaultAsync(o => o.Id == newOrderModel.Id);
+
+            return CreatedAtAction(nameof(GetOrderModelById), new { id = newOrderModel.Id }, createdOrder);
         }
 
         [HttpPut("{id}")]
@@ -46,11 +55,12 @@ namespace OrderService.Controllers
             if (OrderModel is null)
                 return NotFound();
 
-            OrderModel.TotalAmount = updatedOrderModel.TotalAmount;
+            OrderModel.Status = updatedOrderModel.Status;
+
 
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(OrderModel);
         }
 
         [HttpDelete("{id}")]

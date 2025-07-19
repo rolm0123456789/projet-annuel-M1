@@ -4,9 +4,10 @@ import { authService, type User } from '../lib/auth-service';
 interface AuthContextType {
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, role?: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
   getToken: () => string | null;
 }
@@ -30,8 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(user);
   };
 
-  const signUp = async (email: string, password: string) => {
-    await authService.signUp(email, password);
+  const signUp = async (email: string, password: string, role: string = 'User') => {
+    await authService.signUp(email, password, role);
     // Note: Après l'inscription, l'utilisateur doit se connecter
     // Le backend ne retourne pas automatiquement un token après inscription
   };
@@ -64,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp, 
         signOut, 
         isAuthenticated: authService.isAuthenticated(),
+        isAdmin: authService.isAdmin(),
         isLoading,
         getToken
       }}

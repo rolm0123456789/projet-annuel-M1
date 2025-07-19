@@ -10,8 +10,11 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/AuthContext"
 import { Link, useNavigate } from "@tanstack/react-router"
+import { UserCheck, ShieldCheck } from "lucide-react"
 
 export function SignUpForm({
   className,
@@ -20,6 +23,7 @@ export function SignUpForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -44,7 +48,8 @@ export function SignUpForm({
     }
 
     try {
-      await signUp(email, password)
+      const role = isAdmin ? "Admin" : "User"
+      await signUp(email, password, role)
       setSuccess(true)
       // Attendre 2 secondes puis rediriger vers login
       setTimeout(() => {
@@ -70,7 +75,8 @@ export function SignUpForm({
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Inscription réussie !</h2>
               <p className="text-gray-600 mb-4">
-                Votre compte a été créé avec succès. Vous allez être redirigé vers la page de connexion.
+                Votre compte {isAdmin ? "administrateur" : "utilisateur"} a été créé avec succès. 
+                Vous allez être redirigé vers la page de connexion.
               </p>
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 mx-auto"></div>
             </div>
@@ -104,6 +110,7 @@ export function SignUpForm({
                   disabled={loading}
                 />
               </div>
+              
               <div className="grid gap-2">
                 <Label htmlFor="password">Mot de passe</Label>
                 <Input 
@@ -119,6 +126,7 @@ export function SignUpForm({
                   Le mot de passe doit contenir au moins 6 caractères
                 </p>
               </div>
+              
               <div className="grid gap-2">
                 <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
                 <Input 
@@ -130,11 +138,55 @@ export function SignUpForm({
                   disabled={loading}
                 />
               </div>
+
+              {/* Sélecteur de rôle */}
+              <div className="grid gap-3">
+                <Label htmlFor="role">Type de compte</Label>
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center space-x-3">
+                    {isAdmin ? (
+                      <ShieldCheck className="h-5 w-5 text-blue-600" />
+                    ) : (
+                      <UserCheck className="h-5 w-5 text-green-600" />
+                    )}
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium">
+                          {isAdmin ? "Administrateur" : "Utilisateur"}
+                        </span>
+                        <Badge variant={isAdmin ? "default" : "secondary"}>
+                          {isAdmin ? "Admin" : "User"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {isAdmin 
+                          ? "Accès complet : gestion des commandes, validation, etc."
+                          : "Accès standard : navigation, commandes, profil"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="role"
+                    checked={isAdmin}
+                    onCheckedChange={setIsAdmin}
+                    disabled={loading}
+                  />
+                </div>
+                {isAdmin && (
+                  <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
+                    <strong>Note :</strong> Les comptes administrateur ont des privilèges étendus 
+                    pour la gestion de la plateforme.
+                  </div>
+                )}
+              </div>
+
               {error && (
                 <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
                   {error}
                 </div>
               )}
+              
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Création du compte..." : "Créer un compte"}
               </Button>

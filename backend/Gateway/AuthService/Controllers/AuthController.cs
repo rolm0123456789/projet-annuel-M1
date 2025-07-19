@@ -24,15 +24,15 @@ namespace AuthService.Controllers
         public async Task<IActionResult> Register(UserDto dto)
         {
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-                return BadRequest("Email dÈj‡ utilisÈ.");
+                return BadRequest("Email d√©j√† utilis√©.");
 
             var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
-            var user = new User { Email = dto.Email, PasswordHash = hash, Role = "User" };
+            var user = new User { Email = dto.Email, PasswordHash = hash, Role = dto.Role };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok("Utilisateur crÈÈ");
+            return Ok("Utilisateur cr√©√© avec succ√®s.");
         }
 
         [HttpPost("login")]
