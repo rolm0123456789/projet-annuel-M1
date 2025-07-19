@@ -126,6 +126,8 @@ app.MapReverseProxy(proxyPipeline =>
         if (!string.IsNullOrEmpty(userId))
         {
             context.Request.Headers["X-User-Id"] = userId;
+            //Pour le recup dans les controller
+            //var userId = Request.Headers["X-User-Id"].ToString();
         }
 
         await next();
