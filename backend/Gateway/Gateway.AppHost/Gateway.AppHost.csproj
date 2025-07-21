@@ -26,6 +26,7 @@
     <ProjectReference Include="..\NotificationService\NotificationService.csproj" />
     <ProjectReference Include="..\OrderService\OrderService.csproj" />
     <ProjectReference Include="..\PaymentService\PaymentService.csproj" />
+    <ProjectReference Include="..\ProductService\ProductService.csproj" />
     <ProjectReference Include="..\ReviewService\ReviewService.csproj" />
     <ProjectReference Include="..\ShippingService\ShippingService.csproj" />
     <ProjectReference Include="..\SignalRService\SignalRService.csproj" />

@@ -1,6 +1,68 @@
-@ProductService_HostAddress = http://localhost:5237
+@ProductService_HostAddress = http://localhost:5020
 
-GET {{ProductService_HostAddress}}/weatherforecast/
+### Get all products
+GET {{ProductService_HostAddress}}/Product
+Accept: application/json
+
+### Get product by ID
+GET {{ProductService_HostAddress}}/Product/1
+Accept: application/json
+
+### Create a new product
+POST {{ProductService_HostAddress}}/Product
+Content-Type: application/json
+
+{
+  "name": "Test Product",
+  "description": "A test product",
+  "price": 2999,
+  "image": "https://example.com/image.jpg",
+  "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+  "category": "Electronics",
+  "categoryId": "electronics-1",
+  "brand": "TestBrand",
+  "stockQuantity": 100,
+  "tags": ["test", "electronics"],
+  "isOnSale": true,
+  "discount": 15
+}
+
+### Update a product
+PUT {{ProductService_HostAddress}}/Product/1
+Content-Type: application/json
+
+{
+  "name": "Updated Product",
+  "description": "An updated test product",
+  "price": 3999,
+  "image": "https://example.com/updated-image.jpg",
+  "images": ["https://example.com/updated1.jpg"],
+  "category": "Electronics",
+  "categoryId": "electronics-1",
+  "brand": "UpdatedBrand",
+  "stockQuantity": 50,
+  "tags": ["updated", "electronics"],
+  "isOnSale": false,
+  "discount": 0
+}
+
+### Delete a product
+DELETE {{ProductService_HostAddress}}/Product/1
+
+### Search products
+GET {{ProductService_HostAddress}}/Product/search/test
+Accept: application/json
+
+### Get products by category
+GET {{ProductService_HostAddress}}/Product/category/electronics-1
+Accept: application/json
+
+### Get featured products
+GET {{ProductService_HostAddress}}/Product/featured
+Accept: application/json
+
+### Get low stock products
+GET {{ProductService_HostAddress}}/Product/low-stock?threshold=20
 Accept: application/json
 
 ###

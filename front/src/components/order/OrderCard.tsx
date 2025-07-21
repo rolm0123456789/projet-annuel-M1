@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { Calendar, Package, Eye, Trash2 } from 'lucide-react';
 import { OrderModel } from '@/lib/order-service';
 import { orderService } from '@/lib/order-service';
+import { OrderItemWithProduct } from './OrderItemWithProduct';
 
 interface OrderCardProps {
   order: OrderModel;
@@ -17,7 +18,7 @@ export function OrderCard({ order, onOrderDeleted, onViewDetails }: OrderCardPro
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR'
-    }).format(price);
+    }).format(price / 100); // Conversion centimes vers euros
   };
 
   const formatDate = (dateString: string) => {
@@ -75,20 +76,10 @@ export function OrderCard({ order, onOrderDeleted, onViewDetails }: OrderCardPro
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Articles de la commande */}
-        <div className="space-y-2">
+        {/* Articles de la commande avec détails produits */}
+        <div className="space-y-3">
           {order.items.map((item) => (
-            <div key={item.id} className="flex justify-between items-center text-sm">
-              <span className="flex-1">
-                Article #{item.productId} 
-                <span className="text-muted-foreground ml-2">
-                  (x{item.quantity})
-                </span>
-              </span>
-              <span className="font-medium">
-                {formatPrice(item.unitPrice * item.quantity)}
-              </span>
-            </div>
+            <OrderItemWithProduct key={item.id} item={item} />
           ))}
         </div>
 

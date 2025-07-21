@@ -16,7 +16,7 @@ export interface OrderModel {
 export interface OrderItemModel {
   id: number;
   orderId: number;
-  productId: number;
+  productId: number; // Revenir à number
   quantity: number;
   unitPrice: number;
 }
@@ -118,7 +118,7 @@ class OrderService {
     );
 
     const orderItems = cartItems.map(item => ({
-      productId: parseInt(item.id), // Convertir string en number pour l'API
+      productId: parseInt(item.id), // Convertir string vers number
       quantity: item.quantity,
       unitPrice: item.price,
     }));

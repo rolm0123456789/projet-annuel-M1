@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, Link } from '@tanstack/react-router';
-import { ArrowLeft, Filter, SortAsc } from 'lucide-react';
+import { ArrowLeft, Filter, SortAsc, RefreshCw, AlertCircle } from 'lucide-react';
 import { ProductGrid } from '@/components/product';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,164 +11,241 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockProducts } from '@/data/mockProducts';
+import { useProductsByCategory } from '@/lib/hooks/useProducts';
 import { mockCategories } from '@/data/mockCategories';
 
 export default function CategoryPage() {
-    const params = useParams({ strict: false });  const categorySlug = (params as Record<string, string>).name || (params as Record<string, string>).slug;
-  const [sortBy, setSortBy] = useState<string>('name');
-  const [filterBy, setFilterBy] = useState<string>('all');
+    const params = useParams({ strict: false });  
+    const categorySlug = (params as Record<string, string>).name || (params as Record<string, string>).slug;
+    const [sortBy, setSortBy] = useState<string>('name');
+    const [filterBy, setFilterBy] = useState<string>('all');
 
-  // Trouver la catégorie actuelle
-  const currentCategory = mockCategories.find(cat => cat.slug === categorySlug);
-  
-  // Filtrer les produits par catégorie
-  const categoryProducts = useMemo(() => {
-    if (!currentCategory) return [];
+    // Trouver la catégorie actuelle
+    const currentCategory = mockCategories.find(cat => cat.slug === categorySlug);
     
-    let filtered = mockProducts.filter(product => product.categoryId === currentCategory.id);
-    
-    // Appliquer les filtres
-    if (filterBy === 'inStock') {
-      filtered = filtered.filter(product => product.inStock);
-    } else if (filterBy === 'onSale') {
-      filtered = filtered.filter(product => product.isOnSale);
-    } else if (filterBy === 'new') {
-      filtered = filtered.filter(product => product.isNew);
-    }
-    
-    // Appliquer le tri
-    switch (sortBy) {
-      case 'price-asc':
-        return filtered.sort((a, b) => a.price - b.price);
-      case 'price-desc':
-        return filtered.sort((a, b) => b.price - a.price);
-      case 'rating':
-        return filtered.sort((a, b) => b.rating - a.rating);
-      case 'name':
-      default:
-        return filtered.sort((a, b) => a.name.localeCompare(b.name));
-    }
-  }, [currentCategory, sortBy, filterBy]);
-
-  if (!currentCategory) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Catégorie non trouvée
-          </h1>
-          <p className="text-gray-600 mb-6">
-            La catégorie que vous recherchez n'existe pas.
-          </p>
-          <Button asChild>
-            <Link to="/categories">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Retour aux catégories
-            </Link>
-          </Button>
-        </div>
-      </div>
+    // Charger les produits de la catégorie depuis le backend
+    const { products: categoryProducts, loading, error, refetch } = useProductsByCategory(
+        currentCategory?.id
     );
-  }
+    
+    // Filtrer et trier les produits
+    const filteredAndSortedProducts = useMemo(() => {
+        if (!categoryProducts.length) return [];
+        
+        let filtered = [...categoryProducts];
+        
+        // Appliquer les filtres
+        if (filterBy === 'inStock') {
+            filtered = filtered.filter(product => product.inStock);
+        } else if (filterBy === 'onSale') {
+            filtered = filtered.filter(product => product.isOnSale);
+        } else if (filterBy === 'new') {
+            filtered = filtered.filter(product => product.isNew);
+        }
+        
+        // Appliquer le tri
+        switch (sortBy) {
+            case 'price-asc':
+                return filtered.sort((a, b) => a.price - b.price);
+            case 'price-desc':
+                return filtered.sort((a, b) => b.price - a.price);
+            case 'rating':
+                return filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            case 'name':
+            default:
+                return filtered.sort((a, b) => a.name.localeCompare(b.name));
+        }
+    }, [categoryProducts, sortBy, filterBy]);
 
-  return (
-    <div className="min-h-screen py-8">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
-        <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
-          <Link to="/" className="hover:text-gray-900">Accueil</Link>
-          <span>/</span>
-          <Link to="/categories" className="hover:text-gray-900">Catégories</Link>
-          <span>/</span>
-          <span className="text-gray-900 font-medium">{currentCategory.name}</span>
-        </nav>
-
-        {/* En-tête de la catégorie */}
-        <div className="mb-8">
-          <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-primary to-primary/50 px-6 py-12 text-primary-foreground">
-            <div className="relative z-10">
-              <h1 className="text-4xl font-bold mb-4">{currentCategory.name}</h1>
-              <p className="text-lg opacity-90 max-w-2xl">
-                {currentCategory.description}
-              </p>
-              <div className="mt-4">
-                <Badge variant="secondary" className="text-white">
-                  {categoryProducts.length} produit{categoryProducts.length > 1 ? 's' : ''} disponible{categoryProducts.length > 1 ? 's' : ''}
-                </Badge>
-              </div>
+    // Si la catégorie n'existe pas
+    if (!currentCategory) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="text-center">
+                    <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                    <h1 className="text-2xl font-bold text-foreground mb-4">
+                        Catégorie non trouvée
+                    </h1>
+                    <p className="text-muted-foreground mb-6">
+                        La catégorie que vous recherchez n'existe pas.
+                    </p>
+                    <Button asChild>
+                        <Link to="/categories">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Voir toutes les catégories
+                        </Link>
+                    </Button>
+                </div>
             </div>
-            <div className="absolute inset-0"></div>
-          </div>
-        </div>
+        );
+    }
 
-        {/* Filtres et tri */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filtrer par" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les produits</SelectItem>
-                  <SelectItem value="inStock">En stock</SelectItem>
-                  <SelectItem value="onSale">En promotion</SelectItem>
-                  <SelectItem value="new">Nouveautés</SelectItem>
-                </SelectContent>
-              </Select>
+    return (
+        <div className="min-h-screen bg-background">
+            <div className="container mx-auto px-4 py-8">
+                {/* Breadcrumb */}
+                <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-8">
+                    <Link to="/" className="hover:text-foreground">
+                        Accueil
+                    </Link>
+                    <span>/</span>
+                    <Link to="/categories" className="hover:text-foreground">
+                        Catégories
+                    </Link>
+                    <span>/</span>
+                    <span className="font-medium text-foreground">{currentCategory.name}</span>
+                </nav>
+
+                {/* En-tête de la catégorie */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h1 className="text-3xl font-bold text-foreground">
+                                {currentCategory.name}
+                            </h1>
+                            {currentCategory.description && (
+                                <p className="text-muted-foreground mt-2">
+                                    {currentCategory.description}
+                                </p>
+                            )}
+                        </div>
+                        
+                        {!loading && !error && (
+                            <Badge variant="secondary" className="text-sm">
+                                {filteredAndSortedProducts.length} produit{filteredAndSortedProducts.length > 1 ? 's' : ''}
+                            </Badge>
+                        )}
+                    </div>
+
+                    {/* Filtres et tri */}
+                    {!loading && !error && categoryProducts.length > 0 && (
+                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-muted/50 p-4 rounded-lg">
+                            <div className="flex flex-wrap gap-4">
+                                {/* Filtre */}
+                                <div className="flex items-center space-x-2">
+                                    <Filter className="h-4 w-4" />
+                                    <Select value={filterBy} onValueChange={setFilterBy}>
+                                        <SelectTrigger className="w-40">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Tous les produits</SelectItem>
+                                            <SelectItem value="inStock">En stock</SelectItem>
+                                            <SelectItem value="onSale">En promotion</SelectItem>
+                                            <SelectItem value="new">Nouveautés</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Tri */}
+                                <div className="flex items-center space-x-2">
+                                    <SortAsc className="h-4 w-4" />
+                                    <Select value={sortBy} onValueChange={setSortBy}>
+                                        <SelectTrigger className="w-40">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="name">Nom (A-Z)</SelectItem>
+                                            <SelectItem value="price-asc">Prix croissant</SelectItem>
+                                            <SelectItem value="price-desc">Prix décroissant</SelectItem>
+                                            <SelectItem value="rating">Mieux notés</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Reset filtres */}
+                            {(filterBy !== 'all' || sortBy !== 'name') && (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                        setFilterBy('all');
+                                        setSortBy('name');
+                                    }}
+                                >
+                                    Réinitialiser
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Contenu principal */}
+                {loading && (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="flex items-center space-x-2 text-muted-foreground">
+                            <RefreshCw className="h-5 w-5 animate-spin" />
+                            <span>Chargement des produits...</span>
+                        </div>
+                    </div>
+                )}
+
+                {error && !loading && (
+                    <div className="flex flex-col items-center justify-center py-12">
+                        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">Erreur de chargement</h3>
+                        <p className="text-muted-foreground mb-4 text-center max-w-md">
+                            {error}
+                        </p>
+                        <Button variant="outline" onClick={refetch}>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Réessayer
+                        </Button>
+                    </div>
+                )}
+
+                {!loading && !error && (
+                    <>
+                        {filteredAndSortedProducts.length === 0 ? (
+                            <div className="text-center py-12">
+                                <div className="text-muted-foreground">
+                                <span className="flex items-center justify-center">
+                                  <img className="size-16" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Crying%20Face.png" alt="Crying Face" />
+                                </span>
+                                    <h3 className="text-lg font-semibold mb-2">
+                                        {categoryProducts.length === 0 
+                                            ? 'Aucun produit dans cette catégorie'
+                                            : 'Aucun produit ne correspond aux filtres'
+                                        }
+                                    </h3>
+                                    <p className="text-sm">
+                                        {categoryProducts.length === 0 
+                                            ? 'Cette catégorie sera bientôt remplie avec de nouveaux produits.'
+                                            : 'Essayez de modifier vos critères de filtrage.'
+                                        }
+                                    </p>
+                                    
+                                    {categoryProducts.length > 0 && (
+                                        <Button 
+                                            variant="outline" 
+                                            className="mt-4"
+                                            onClick={() => {
+                                                setFilterBy('all');
+                                                setSortBy('name');
+                                            }}
+                                        >
+                                            Voir tous les produits de la catégorie
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <ProductGrid products={filteredAndSortedProducts} />
+                        )}
+                    </>
+                )}
+
+                {/* Bouton retour en bas */}
+                <div className="mt-12 text-center">
+                    <Button variant="outline" asChild>
+                        <Link to="/categories">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Voir toutes les catégories
+                        </Link>
+                    </Button>
+                </div>
             </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <SortAsc className="h-4 w-4 text-gray-500" />
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Trier par" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Nom (A-Z)</SelectItem>
-                <SelectItem value="price-asc">Prix croissant</SelectItem>
-                <SelectItem value="price-desc">Prix décroissant</SelectItem>
-                <SelectItem value="rating">Mieux notés</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
-
-        {/* Grille de produits */}
-        {categoryProducts.length > 0 ? (
-          <ProductGrid products={categoryProducts} />
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8V4a1 1 0 00-1-1H6a1 1 0 00-1 1v1m16 0V4a1 1 0 00-1-1H6a1 1 0 00-1 1v1" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Aucun produit trouvé
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Aucun produit ne correspond aux critères sélectionnés.
-            </p>
-            <Button variant="outline" onClick={() => setFilterBy('all')}>
-              Réinitialiser les filtres
-            </Button>
-          </div>
-        )}
-
-        {/* Bouton retour */}
-        <div className="mt-12 text-center">
-          <Button variant="outline" asChild>
-            <Link to="/categories">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voir toutes les catégories
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

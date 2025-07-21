@@ -4,9 +4,21 @@ using OrderService.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseKestrel();
+
 // Add services
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite("Data Source=Order.db"));
+
+// Ajouter la configuration CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -19,7 +31,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate(); // Applique les migrations et cr�e la DB si besoin
+    
+    // Supprimer et recréer la base de données pour éviter les conflits de migration
+    db.Database.EnsureDeleted();
+    db.Database.EnsureCreated();
 }
 
 // Configure the HTTP request pipeline.
@@ -31,6 +46,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Utiliser CORS avant l'autorisation
+app.UseCors("AllowFrontend");
 
 app.UseAuthorization();
 

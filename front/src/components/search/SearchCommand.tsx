@@ -10,14 +10,18 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Button } from '@/components/ui/button';
-import { mockProducts } from '@/data/mockProducts';
+import { useProductSearch } from '@/lib/hooks/useProducts';
 import { mockCategories, getCategoryIcon } from '@/data/mockCategories';
 
 export function SearchCommand() {
   const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   
-  const platform = navigator?.userAgent.toLowerCase() || "no-platform";
+  // const platform = navigator?.userAgent.toLowerCase() || "no-platform";
+
+  // Utiliser le hook de recherche avec un délai pour éviter trop de requêtes
+  const { products: searchResults, loading } = useProductSearch(searchTerm);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -35,7 +39,7 @@ export function SearchCommand() {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR'
-    }).format(price);
+    }).format(price / 100); // Conversion centimes vers euros
   };
 
   const handleCategorySelect = (categorySlug: string) => {
@@ -48,6 +52,10 @@ export function SearchCommand() {
     navigate({ to: `/products/${productId}` });
   };
 
+  const handleInputChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
   return (
     <>
       <Button
@@ -56,21 +64,27 @@ export function SearchCommand() {
         onClick={() => setOpen(true)}
       >
         <Search className="h-4 w-4 xl:mr-2" />
-        <span className="hidden xl:inline-flex">Rechercher...</span>
-        <kbd className="pointer-events-none absolute right-1.5 top-2 hidden h-6 select-none items-center gap-1 rounded mr-2 border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 xl:flex">
-          <span className="text-xs">{platform.includes('mac') ? '⌘K' : 'Ctrl+K'}</span>
+        <span className="hidden xl:inline-flex">Rechercher des produits...</span>
+        <kbd className="pointer-events-none absolute right-1.5 top-2 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 xl:flex">
+          <span className="text-xs">⌘</span>K
         </kbd>
       </Button>
-
+      
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Rechercher des produits ou catégories..." />
+        <CommandInput 
+          placeholder="Rechercher des produits..." 
+          value={searchTerm}
+          onValueChange={handleInputChange}
+        />
         <CommandList>
-          <CommandEmpty>Aucun résultat trouvé.</CommandEmpty>
+          <CommandEmpty>
+            {loading ? 'Recherche en cours...' : 'Aucun résultat trouvé.'}
+          </CommandEmpty>
           
           {/* Catégories */}
           <CommandGroup heading="Catégories">
-            {mockCategories.map((category) => {
-              const IconComponent = getCategoryIcon(category.id);
+            {mockCategories.slice(0, 6).map((category) => {
+              const CategoryIcon = getCategoryIcon(category.id);
               return (
                 <CommandItem
                   key={category.id}
@@ -78,41 +92,52 @@ export function SearchCommand() {
                   onSelect={() => handleCategorySelect(category.slug)}
                   className="flex items-center cursor-pointer"
                 >
-                  <div className="rounded-md bg-primary/10 p-1.5 mr-3">
-                    <IconComponent className="h-3.5 w-3.5 text-primary" />
-                  </div>
+                  <CategoryIcon className="mr-2 h-4 w-4" />
                   <span>{category.name}</span>
                 </CommandItem>
               );
             })}
           </CommandGroup>
 
-          {/* Produits */}
-          <CommandGroup heading="Produits">
-            {mockProducts.slice(0, 8).map((product) => (
-              <CommandItem
-                key={product.id}
-                value={`${product.name} ${product.brand} ${product.category}`}
-                onSelect={() => handleProductSelect(product.id)}
-                className="flex items-center cursor-pointer"
-              >
-                <Package className="mr-2 h-4 w-4" />
-                <div className="flex items-center justify-between w-full">
-                  <div>
-                    <span className="font-medium">{product.name}</span>
-                    {product.brand && (
-                      <span className="text-muted-foreground ml-2 text-sm">
-                        {product.brand}
-                      </span>
-                    )}
+          {/* Produits trouvés */}
+          {searchResults.length > 0 && (
+            <CommandGroup heading="Produits">
+              {searchResults.slice(0, 8).map((product) => (
+                <CommandItem
+                  key={product.id}
+                  value={`${product.name} ${product.brand} ${product.category}`}
+                  onSelect={() => handleProductSelect(product.id)}
+                  className="flex items-center cursor-pointer"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  <div className="flex items-center justify-between w-full">
+                    <div>
+                      <span className="font-medium">{product.name}</span>
+                      {product.brand && (
+                        <span className="text-muted-foreground ml-2 text-sm">
+                          {product.brand}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium">
+                      {formatPrice(product.price)}
+                    </span>
                   </div>
-                  <span className="text-sm font-medium">
-                    {formatPrice(product.price)}
-                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {/* Message si pas de terme de recherche */}
+          {!searchTerm.trim() && (
+            <CommandGroup heading="Suggestions">
+              <CommandItem disabled>
+                <div className="text-sm text-muted-foreground">
+                  Tapez pour rechercher des produits...
                 </div>
               </CommandItem>
-            ))}
-          </CommandGroup>
+            </CommandGroup>
+          )}
         </CommandList>
       </CommandDialog>
     </>
