@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OrderService.Models;
 
 namespace OrderService.Data;
 
@@ -11,9 +12,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<OrderItemModel>()
-         .HasOne(item => item.Order)
-         .WithMany(order => order.Items)
-         .HasForeignKey(item => item.OrderId);
+            .HasOne(item => item.Order)
+            .WithMany(order => order.Items)
+            .HasForeignKey(item => item.OrderId);
     }
-
 }

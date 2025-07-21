@@ -1,5 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 
+namespace OrderService.Models;
+
 public class OrderModel
 {
     public int Id { get; set; }
@@ -18,6 +20,6 @@ public class OrderItemModel
     public int ProductId { get; set; }
     public int Quantity { get; set; }
     public float UnitPrice { get; set; }
-    [JsonIgnore]
-    public OrderModel? Order { get; set; }
+
+    [JsonIgnore] public OrderModel? Order { get; set; }
 }
