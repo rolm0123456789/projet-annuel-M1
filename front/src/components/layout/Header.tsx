@@ -26,6 +26,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 export function Header() {
   const { isAuthenticated, user, isAdmin, signOut } = useAuth();
 
+  console.log("isAdmin",isAdmin);
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -91,6 +93,15 @@ export function Header() {
 
           {/* Panier */}
           <Cart />
+
+          {isAdmin && (
+            <Button variant="ghost" asChild>
+              <Link to="/admin" className="flex items-center space-x-2">
+                <Shield className="h-4 w-4" />
+                <span>Administration</span>
+              </Link>
+            </Button>
+          )}
 
           {/* Authentification - Desktop */}
           {isAuthenticated ? (
