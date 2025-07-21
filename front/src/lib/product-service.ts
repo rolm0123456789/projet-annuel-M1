@@ -179,7 +179,7 @@ class ProductService {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR'
-    }).format(price / 100); // Supposer que les prix sont en centimes
+    }).format(price / 100); // Les prix backend sont en centimes
   }
 
   calculateDiscountedPrice(price: number, discount: number): number {

@@ -22,8 +22,9 @@ import {
   Calendar,
   User
 } from 'lucide-react';
-import { OrderModel, orderService } from '@/lib/order-service';
+import { type OrderModel, orderService } from '@/lib/order-service';
 import { useAuth } from '@/contexts/AuthContext';
+import { OrderItemDisplay } from '@/components/order/OrderItemDisplay';
 
 const ORDER_STATUSES = [
   { value: 'En attente', label: 'En attente', icon: Clock },
@@ -34,7 +35,7 @@ const ORDER_STATUSES = [
 ];
 
 export function AdminOrderManagement() {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [orders, setOrders] = useState<OrderModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +105,7 @@ export function AdminOrderManagement() {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR'
-    }).format(price);
+    }).format(price / 100); // Les prix backend sont en centimes
   };
 
   const formatDate = (dateString: string) => {
@@ -197,21 +198,12 @@ export function AdminOrderManagement() {
 
         <CardContent className="space-y-4">
           {/* Articles de la commande */}
-          <div className="bg-muted/50 rounded-lg p-3">
-            <h4 className="font-medium mb-2">Articles commandés :</h4>
-            <div className="space-y-1">
               {order.items.map((item) => (
-                <div key={item.id} className="flex justify-between items-center text-sm">
-                  <span>
-                    Article #{item.productId} (x{item.quantity})
-                  </span>
-                  <span className="font-medium">
-                    {formatPrice(item.unitPrice * item.quantity)}
-                  </span>
-                </div>
+                <OrderItemDisplay
+                  key={item.id} 
+                  item={item}
+                />
               ))}
-            </div>
-          </div>
 
           {/* Actions et total */}
           <div className="flex items-center justify-between">

@@ -2,18 +2,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Package, Eye, Trash2 } from 'lucide-react';
-import { OrderModel } from '@/lib/order-service';
+import { Calendar, Package, Trash2 } from 'lucide-react';
+import type { OrderModel } from '@/lib/order-service';
 import { orderService } from '@/lib/order-service';
-import { OrderItemWithProduct } from './OrderItemWithProduct';
+import { OrderItemDetailed } from './OrderItemDisplay';
 
 interface OrderCardProps {
   order: OrderModel;
   onOrderDeleted?: (orderId: number) => void;
-  onViewDetails?: (orderId: number) => void;
 }
 
-export function OrderCard({ order, onOrderDeleted, onViewDetails }: OrderCardProps) {
+export function OrderCard({ order, onOrderDeleted }: OrderCardProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -79,7 +78,7 @@ export function OrderCard({ order, onOrderDeleted, onViewDetails }: OrderCardPro
         {/* Articles de la commande avec détails produits */}
         <div className="space-y-3">
           {order.items.map((item) => (
-            <OrderItemWithProduct key={item.id} item={item} />
+            <OrderItemDetailed key={item.id} item={item} />
           ))}
         </div>
 
@@ -92,17 +91,6 @@ export function OrderCard({ order, onOrderDeleted, onViewDetails }: OrderCardPro
           </div>
           
           <div className="flex space-x-2">
-            {onViewDetails && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => onViewDetails(order.id)}
-              >
-                <Eye className="h-4 w-4 mr-1" />
-                Détails
-              </Button>
-            )}
-            
             {/* Permettre la suppression seulement pour certains statuts */}
             {['En attente', 'Annulée'].includes(order.status) && (
               <Button 
