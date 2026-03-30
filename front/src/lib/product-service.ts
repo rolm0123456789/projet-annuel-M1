@@ -1,6 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
-  ? `${import.meta.env.VITE_API_BASE_URL}/api/products/Product`
-  : 'https://localhost:7299/api/products/Product';
+import { GATEWAY_URL } from './config';
+
+const API_BASE_URL = `${GATEWAY_URL}/api/products/Product`;
 
 export interface Product {
   id: number; // Changé de string vers number

@@ -45,5 +45,42 @@ namespace AuthService.Controllers
             var token = _tokenService.CreateToken(user);
             return Ok(new { token });
         }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
+            if (user is null)
+                return Ok(new { message = "Si un compte existe avec cet email, un code de réinitialisation a été généré." });
+
+            // Générer un code à 6 chiffres
+            var resetToken = Random.Shared.Next(100000, 999999).ToString();
+            user.ResetToken = resetToken;
+            user.ResetTokenExpiry = DateTime.UtcNow.AddMinutes(15);
+            await _context.SaveChangesAsync();
+
+            // Log le code en console (en prod, envoyer par email)
+            Console.WriteLine($"[RESET PASSWORD] Code pour {user.Email}: {resetToken}");
+
+            return Ok(new { message = "Si un compte existe avec cet email, un code de réinitialisation a été généré." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(u =>
+                u.ResetToken == dto.Token &&
+                u.ResetTokenExpiry > DateTime.UtcNow);
+
+            if (user is null)
+                return BadRequest("Code invalide ou expiré.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.ResetToken = null;
+            user.ResetTokenExpiry = null;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Mot de passe réinitialisé avec succès." });
+        }
     }
 }

@@ -1,8 +1,8 @@
 import { authService } from './auth-service';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
-  ? `${import.meta.env.VITE_API_BASE_URL}/api/orders/Order`
-  : 'https://localhost:7299/api/orders/Order';
+import { GATEWAY_URL } from './config';
+
+const API_BASE_URL = `${GATEWAY_URL}/api/orders/Order`;
 
 export interface OrderModel {
   id: number;

@@ -11,6 +11,8 @@ import OrdersPage from '@/pages/OrdersPage';
 import AdminPage from '@/pages/AdminPage';
 import LoginPage from '@/pages/LoginPage';
 import SignUpPage from '@/pages/SignUpPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -66,13 +68,24 @@ const signUpRoute = createRoute({
   path: '/signup',
   component: SignUpPage,
   beforeLoad: () => {
-    // Rediriger vers /account si déjà connecté
     if (authService.isAuthenticated()) {
       throw redirect({
         to: '/account',
       });
     }
   },
+});
+
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forgot-password',
+  component: ForgotPasswordPage,
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reset-password',
+  component: ResetPasswordPage,
 });
 
 // Routes protégées (authentification requise)
@@ -142,6 +155,8 @@ export const routeTree = rootRoute.addChildren([
   categoriesRoute,
   loginRoute,
   signUpRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
   accountRoute,
   ordersRoute,
   adminRoute,

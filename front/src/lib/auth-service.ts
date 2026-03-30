@@ -1,6 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
-  ? `${import.meta.env.VITE_API_BASE_URL}/api/auth/Auth`
-  : 'https://localhost:7299/api/auth/Auth';
+import { GATEWAY_URL } from './config';
+
+const API_BASE_URL = `${GATEWAY_URL}/api/auth/Auth`;
 
 export interface User {
   id: number;
@@ -103,6 +103,38 @@ class AuthService {
   isAdmin(): boolean {
     console.log(this.user?.role);
     return this.user?.role === 'admin' || this.user?.role === 'Admin';
+  }
+
+  async forgotPassword(email: string): Promise<string> {
+    const response = await fetch(`${API_BASE_URL}/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(errorData || 'Erreur lors de la demande de réinitialisation');
+    }
+
+    const data = await response.json();
+    return data.message;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<string> {
+    const response = await fetch(`${API_BASE_URL}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(errorData || 'Erreur lors de la réinitialisation du mot de passe');
+    }
+
+    const data = await response.json();
+    return data.message;
   }
 
   // Méthode pour faire des requêtes authentifiées

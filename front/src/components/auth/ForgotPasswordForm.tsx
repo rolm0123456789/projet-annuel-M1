@@ -10,28 +10,27 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/contexts/AuthContext"
+import { authService } from "@/lib/auth-service"
 import { Link, useNavigate } from "@tanstack/react-router"
 
-export function LoginForm({
+export function ForgotPasswordForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
   const navigate = useNavigate()
-  const { signIn } = useAuth()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     try {
-      await signIn(email, password)
-      navigate({ to: "/account" })
+      await authService.forgotPassword(email)
+      setSent(true)
     } catch (error) {
       setError(error instanceof Error ? error.message : "Une erreur est survenue")
     } finally {
@@ -39,17 +38,45 @@ export function LoginForm({
     }
   }
 
+  if (sent) {
+    return (
+      <div className={cn("flex flex-col justify-center items-center gap-6", className)} {...props}>
+        <Card className="w-full max-w-2xl">
+          <CardHeader>
+            <CardTitle className="text-2xl">Code envoyé</CardTitle>
+            <CardDescription>
+              Si un compte existe avec l'email <strong>{email}</strong>, un code de réinitialisation a été généré.
+              Consultez les logs du serveur pour récupérer le code.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4">
+              <Button onClick={() => navigate({ to: "/reset-password" })} className="w-full">
+                Entrer le code de réinitialisation
+              </Button>
+              <div className="text-center text-sm">
+                <Link to="/login" className="underline">
+                  Retour à la connexion
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
-    <div className={cn("flex flex-col justify-center items-center gap-6 ", className)} {...props}>
+    <div className={cn("flex flex-col justify-center items-center gap-6", className)} {...props}>
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Connexion</CardTitle>
+          <CardTitle className="text-2xl">Mot de passe oublié</CardTitle>
           <CardDescription>
-            Entrez votre email ci-dessous pour vous connecter à votre compte
+            Entrez votre email pour recevoir un code de réinitialisation
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
@@ -63,35 +90,18 @@ export function LoginForm({
                   disabled={loading}
                 />
               </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Link to="/forgot-password" className="ml-auto inline-block text-sm underline">
-                    Mot de passe oublié?
-                  </Link>
-                </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
               {error && (
                 <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
                   {error}
                 </div>
               )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Connexion..." : "Se connecter"}
+                {loading ? "Envoi..." : "Envoyer le code"}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
-              Vous n&apos;avez pas de compte?{" "}
-              <Link to="/signup" className="underline">
-                S&apos;inscrire
+              <Link to="/login" className="underline">
+                Retour à la connexion
               </Link>
             </div>
           </form>
