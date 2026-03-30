@@ -22,9 +22,11 @@ import { Cart } from '@/components/cart';
 import { mockCategories, getCategoryIcon } from '@/data/mockCategories';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useConfig } from '@/lib/hooks/useConfig';
 
 export function Header() {
   const { isAuthenticated, user, isAdmin, signOut } = useAuth();
+  const { clientName, logo } = useConfig();
 
 
   const handleSignOut = async () => {
@@ -40,8 +42,12 @@ export function Header() {
       <div className="flex h-16 w-full items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
-          <ShoppingBag className="h-6 w-6" />
-          <span className="text-xl font-bold">MyShop</span>
+          {logo.src ? (
+            <img src={logo.src} alt={logo.alt} className="h-6 w-6 object-contain" />
+          ) : (
+            <ShoppingBag className="h-6 w-6" />
+          )}
+          <span className="text-xl font-bold">{clientName}</span>
         </Link>
 
         {/* Navigation Desktop - Centré */}
@@ -144,8 +150,12 @@ export function Header() {
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <SheetHeader>
                 <SheetTitle className="flex items-center space-x-2">
-                  <ShoppingBag className="h-5 w-5" />
-                  <span>MyShop</span>
+                  {logo.src ? (
+                    <img src={logo.src} alt={logo.alt} className="h-5 w-5 object-contain" />
+                  ) : (
+                    <ShoppingBag className="h-5 w-5" />
+                  )}
+                  <span>{clientName}</span>
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col space-y-4 mt-6">

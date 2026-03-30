@@ -1,7 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { ShoppingBag } from 'lucide-react';
+import { useConfig } from '@/lib/hooks/useConfig';
 
 export function Footer() {
+  const { clientName, clientDescription, logo } = useConfig();
 
   return (
     <footer className="border-t bg-background">
@@ -10,11 +12,15 @@ export function Footer() {
           {/* Logo et description */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <ShoppingBag className="h-6 w-6" />
-              <span className="text-xl font-bold">MyShop</span>
+              {logo.src ? (
+                <img src={logo.src} alt={logo.alt} className="h-6 w-6 object-contain" />
+              ) : (
+                <ShoppingBag className="h-6 w-6" />
+              )}
+              <span className="text-xl font-bold">{clientName}</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Votre boutique en ligne de confiance pour tous vos besoins.
+              {clientDescription}
             </p>
           </div>
 
