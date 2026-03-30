@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Sparkles, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Sparkles, ShoppingBag, Star } from 'lucide-react';
 
 export function HeroSection() {
   return (
@@ -57,7 +57,7 @@ export function HeroSection() {
               <div className="text-sm text-muted-foreground">Livraison express</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">4.8★</div>
+              <div className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">4.8 <Star className="size-6 text-yellow-500 fill-yellow-500" /></div>
               <div className="text-sm text-muted-foreground">Note moyenne</div>
             </div>
           </div>

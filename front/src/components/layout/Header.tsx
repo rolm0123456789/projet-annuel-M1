@@ -26,7 +26,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 export function Header() {
   const { isAuthenticated, user, isAdmin, signOut } = useAuth();
 
-  console.log("isAdmin",isAdmin);
 
   const handleSignOut = async () => {
     try {

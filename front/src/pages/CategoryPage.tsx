@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, Link } from '@tanstack/react-router';
 import { ArrowLeft, Filter, SortAsc, RefreshCw, AlertCircle } from 'lucide-react';
 import { ProductGrid } from '@/components/product';
@@ -12,20 +12,25 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useProductsByCategory } from '@/lib/hooks/useProducts';
-import { mockCategories } from '@/data/mockCategories';
+import { productService, type Category } from '@/lib/product-service';
 
 export default function CategoryPage() {
-    const params = useParams({ strict: false });  
+    const params = useParams({ strict: false });
     const categorySlug = (params as Record<string, string>).name || (params as Record<string, string>).slug;
     const [sortBy, setSortBy] = useState<string>('name');
     const [filterBy, setFilterBy] = useState<string>('all');
+    const [currentCategory, setCurrentCategory] = useState<Category | null | undefined>(undefined);
 
-    // Trouver la catégorie actuelle
-    const currentCategory = mockCategories.find(cat => cat.slug === categorySlug);
-    
+    useEffect(() => {
+        if (!categorySlug) { setCurrentCategory(null); return; }
+        productService.getCategoryBySlug(categorySlug)
+            .then(setCurrentCategory)
+            .catch(() => setCurrentCategory(null));
+    }, [categorySlug]);
+
     // Charger les produits de la catégorie depuis le backend
     const { products: categoryProducts, loading, error, refetch } = useProductsByCategory(
-        currentCategory?.id
+        currentCategory?.slug
     );
     
     // Filtrer et trier les produits
@@ -56,6 +61,15 @@ export default function CategoryPage() {
                 return filtered.sort((a, b) => a.name.localeCompare(b.name));
         }
     }, [categoryProducts, sortBy, filterBy]);
+
+    // Chargement initial de la catégorie
+    if (currentCategory === undefined) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
 
     // Si la catégorie n'existe pas
     if (!currentCategory) {

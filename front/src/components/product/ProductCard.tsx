@@ -15,10 +15,11 @@ export function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate();
 
   const formatPrice = (price: number) => {
+    console.log("price",price);
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR'
-    }).format(price);
+    }).format(price / 100);
   };
 
   const renderStars = (rating: number) => {
@@ -67,7 +68,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <CardContent className="p-0">
         {/* Image */}
         <Link to={`/products/${product.id}`} className="block">
-          <div className="aspect-square overflow-hidden rounded-lg">
+          <div className="aspect-square overflow-hidden rounded-lg mx-5">
             <img
               src={product.image}
               alt={product.name}
@@ -101,7 +102,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {/* Rating */}
           <div className="flex items-center gap-1 mt-2">
             <div className="flex">
-              {renderStars(product.rating)}
+              {renderStars(product.rating || Math.floor(Math.random() * 5))}
             </div>
             <span className="text-xs text-muted-foreground">
               ({product.reviewCount})

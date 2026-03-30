@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { HeroSection } from '@/components/home/HeroSection';
 import { ProductGrid } from '@/components/product';
 import { useProducts, useFeaturedProducts } from '@/lib/hooks/useProducts';
-import { mockCategories, getCategoryIcon } from '@/data/mockCategories';
+import { getCategoryIcon } from '@/data/mockCategories';
+import { productService, type Category } from '@/lib/product-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from '@tanstack/react-router';
@@ -10,17 +12,21 @@ import { ArrowRight, RefreshCw, AlertCircle } from 'lucide-react';
 export default function Home() {
     const { products: allProducts, loading: allLoading, error: allError } = useProducts();
     const { products: featuredProducts, loading: featuredLoading, error: featuredError } = useFeaturedProducts();
-    
+    const [featuredCategories, setFeaturedCategories] = useState<Category[]>([]);
+
+    useEffect(() => {
+        productService.getCategories()
+            .then((cats) => setFeaturedCategories(cats.slice(0, 6)))
+            .catch(() => {/* silencieux si l'API est indisponible */});
+    }, []);
+
     // Afficher les 8 premiers produits si les featured ne sont pas disponibles
-    const displayProducts = featuredProducts.length > 0 
+    const displayProducts = featuredProducts.length > 0
         ? featuredProducts.slice(0, 8)
         : allProducts.slice(0, 8);
-    
+
     const isLoading = featuredLoading || allLoading;
     const hasError = featuredError || allError;
-    
-    // Afficher les 6 premières catégories
-    const featuredCategories = mockCategories.slice(0, 6);
 
     return (
         <div className="min-h-screen bg-background">
@@ -100,10 +106,10 @@ export default function Home() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {featuredCategories.map((category) => {
-                            const CategoryIcon = getCategoryIcon(category.id);
+                            const CategoryIcon = getCategoryIcon(category.slug);
                             return (
-                                <Card 
-                                    key={category.id} 
+                                <Card
+                                    key={category.id}
                                     className="group hover:shadow-lg transition-shadow duration-300 cursor-pointer"
                                 >
                                     <Link to={`/categories/${category.slug}`}>

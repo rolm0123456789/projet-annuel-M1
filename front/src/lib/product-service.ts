@@ -1,6 +1,16 @@
 import { GATEWAY_URL } from './config';
 
 const API_BASE_URL = `${GATEWAY_URL}/api/products/Product`;
+const CATEGORY_BASE_URL = `${GATEWAY_URL}/api/products/Category`;
+
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  productCount: number;
+}
 
 export interface Product {
   id: number; // Changé de string vers number
@@ -200,6 +210,22 @@ class ProductService {
     if (product.stockQuantity === 0) return 'text-red-600';
     if (product.stockQuantity <= 10) return 'text-orange-600';
     return 'text-green-600';
+  }
+
+  async getCategories(): Promise<Category[]> {
+    console.log("CATEGORY_BASE_URL",CATEGORY_BASE_URL);
+    const response = await fetch(CATEGORY_BASE_URL);
+    if (!response.ok) throw new Error('Erreur lors de la récupération des catégories');
+    return response.json();
+  }
+
+  async getCategoryBySlug(slug: string): Promise<Category> {
+    const response = await fetch(`${CATEGORY_BASE_URL}/${encodeURIComponent(slug)}`);
+    if (!response.ok) {
+      if (response.status === 404) throw new Error('Catégorie non trouvée');
+      throw new Error('Erreur lors de la récupération de la catégorie');
+    }
+    return response.json();
   }
 }
 
