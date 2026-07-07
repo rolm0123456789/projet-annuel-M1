@@ -1,13 +1,35 @@
-
 using Microsoft.EntityFrameworkCore;
 using OrderService.Data;
+using OrderService.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseKestrel();
 
 // Add services
+// PostgreSQL si une chaîne de connexion est fournie (conteneurs), sinon SQLite (dev local).
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var usePostgres = !string.IsNullOrWhiteSpace(connectionString);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite("Data Source=Order.db"));
+{
+    if (usePostgres)
+        options.UseNpgsql(connectionString);
+    else
+        options.UseSqlite("Data Source=Order.db");
+});
+
+// RabbitMQ (désactivé si RabbitMq:HostName n'est pas configuré)
+var rabbitOptions = builder.Configuration.GetSection("RabbitMq").Get<RabbitMqOptions>() ?? new RabbitMqOptions();
+builder.Services.AddSingleton(rabbitOptions);
+if (rabbitOptions.Enabled)
+{
+    builder.Services.AddSingleton<RabbitMqConnection>();
+    builder.Services.AddSingleton<IEventPublisher, RabbitMqEventPublisher>();
+    builder.Services.AddHostedService<OrderStatusEventsConsumer>();
+}
+else
+{
+    builder.Services.AddSingleton<IEventPublisher, NullEventPublisher>();
+}
 
 // Ajouter la configuration CORS
 builder.Services.AddCors(options =>
@@ -31,10 +53,18 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    
-    // Supprimer et recréer la base de données pour éviter les conflits de migration
-    db.Database.EnsureDeleted();
-    db.Database.EnsureCreated();
+
+    if (usePostgres)
+    {
+        // La base peut mettre quelques secondes à accepter les connexions au démarrage des conteneurs.
+        DbStartup.EnsureCreatedWithRetry(db, app.Logger);
+    }
+    else
+    {
+        // Supprimer et recréer la base de données pour éviter les conflits de migration
+        db.Database.EnsureDeleted();
+        db.Database.EnsureCreated();
+    }
 }
 
 // Configure the HTTP request pipeline.
@@ -55,3 +85,23 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+internal static class DbStartup
+{
+    public static void EnsureCreatedWithRetry(DbContext db, ILogger logger)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                db.Database.EnsureCreated();
+                return;
+            }
+            catch (Exception ex) when (attempt < 30)
+            {
+                logger.LogWarning(ex, "Base de données indisponible (tentative {Attempt}/30), nouvel essai dans 2s", attempt);
+                Thread.Sleep(TimeSpan.FromSeconds(2));
+            }
+        }
+    }
+}
