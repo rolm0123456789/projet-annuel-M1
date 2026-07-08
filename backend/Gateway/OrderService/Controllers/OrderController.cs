@@ -1,13 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OrderService.Data;
+using OrderService.Domain;
+using OrderService.Messaging;
 using OrderService.Models;
 
 namespace OrderService.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class OrderController(ApplicationDbContext context) : ControllerBase
+public class OrderController(ApplicationDbContext context, IEventPublisher eventPublisher) : ControllerBase
 {
     private readonly ApplicationDbContext _context = context;
 
@@ -38,6 +40,9 @@ public class OrderController(ApplicationDbContext context) : ControllerBase
         if (newOrderModel is null)
             return BadRequest();
 
+        newOrderModel.Status = OrderStatusFlow.Pending;
+        newOrderModel.TotalAmount = OrderPricing.ComputeTotal(newOrderModel.Items);
+
         _context.Orders.Add(newOrderModel);
         await _context.SaveChangesAsync();
 
@@ -45,6 +50,21 @@ public class OrderController(ApplicationDbContext context) : ControllerBase
         var createdOrder = await _context.Orders
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == newOrderModel.Id);
+
+        // Publication de l'événement OrderCreated : InventoryService et PaymentService
+        // consomment cet événement de manière asynchrone.
+        eventPublisher.Publish(EventBusTopology.OrderCreated, "OrderCreated", new
+        {
+            orderId = newOrderModel.Id,
+            userId = newOrderModel.UserId,
+            totalAmount = newOrderModel.TotalAmount,
+            items = newOrderModel.Items.Select(i => new
+            {
+                productId = i.ProductId,
+                quantity = i.Quantity,
+                unitPrice = i.UnitPrice
+            })
+        });
 
         return CreatedAtAction(nameof(GetOrderModelById), new { id = newOrderModel.Id }, createdOrder);
     }

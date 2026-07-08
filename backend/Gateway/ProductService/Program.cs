@@ -5,8 +5,16 @@ using ProductService.Models;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseKestrel();
 
+// PostgreSQL si une chaîne de connexion est fournie (conteneurs), sinon SQLite (dev local).
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var usePostgres = !string.IsNullOrWhiteSpace(connectionString);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite("Data Source=Product.db"));
+{
+    if (usePostgres)
+        options.UseNpgsql(connectionString);
+    else
+        options.UseSqlite("Data Source=Product.db");
+});
 
 builder.Services.AddCors(options =>
 {
@@ -28,7 +36,19 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.EnsureCreated();
+    // La base peut mettre quelques secondes à accepter les connexions au démarrage des conteneurs.
+    for (var attempt = 1; ; attempt++)
+    {
+        try
+        {
+            db.Database.EnsureCreated();
+            break;
+        }
+        catch (Exception) when (usePostgres && attempt < 30)
+        {
+            Thread.Sleep(TimeSpan.FromSeconds(2));
+        }
+    }
     SeedData(db);
 }
 

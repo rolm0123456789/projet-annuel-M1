@@ -1,12 +1,34 @@
-
 using InventoryService.Data;
+using InventoryService.Messaging;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseKestrel();
 // Add services
+// PostgreSQL si une chaîne de connexion est fournie (conteneurs), sinon SQLite (dev local).
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var usePostgres = !string.IsNullOrWhiteSpace(connectionString);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite("Data Source=Inventory.db"));
+{
+    if (usePostgres)
+        options.UseNpgsql(connectionString);
+    else
+        options.UseSqlite("Data Source=Inventory.db");
+});
+
+// RabbitMQ (désactivé si RabbitMq:HostName n'est pas configuré)
+var rabbitOptions = builder.Configuration.GetSection("RabbitMq").Get<RabbitMqOptions>() ?? new RabbitMqOptions();
+builder.Services.AddSingleton(rabbitOptions);
+if (rabbitOptions.Enabled)
+{
+    builder.Services.AddSingleton<RabbitMqConnection>();
+    builder.Services.AddSingleton<IEventPublisher, RabbitMqEventPublisher>();
+    builder.Services.AddHostedService<OrderCreatedConsumer>();
+}
+else
+{
+    builder.Services.AddSingleton<IEventPublisher, NullEventPublisher>();
+}
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -18,7 +40,17 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate(); // Applique les migrations et cr�e la DB si besoin
+    if (usePostgres)
+    {
+        InventoryDbStartup.EnsureCreatedWithRetry(db, app.Logger);
+    }
+    else
+    {
+        db.Database.Migrate(); // Applique les migrations et crée la DB si besoin
+        // Table d'idempotence absente des anciennes migrations SQLite.
+        db.Database.ExecuteSqlRaw(
+            """CREATE TABLE IF NOT EXISTS "ProcessedEvents" ("EventId" TEXT NOT NULL CONSTRAINT "PK_ProcessedEvents" PRIMARY KEY, "ProcessedAt" TEXT NOT NULL)""");
+    }
 }
 
 // Configure the HTTP request pipeline.
@@ -36,3 +68,23 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+internal static class InventoryDbStartup
+{
+    public static void EnsureCreatedWithRetry(DbContext db, ILogger logger)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                db.Database.EnsureCreated();
+                return;
+            }
+            catch (Exception ex) when (attempt < 30)
+            {
+                logger.LogWarning(ex, "Base de données indisponible (tentative {Attempt}/30), nouvel essai dans 2s", attempt);
+                Thread.Sleep(TimeSpan.FromSeconds(2));
+            }
+        }
+    }
+}
