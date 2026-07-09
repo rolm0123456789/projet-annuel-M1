@@ -1,0 +1,175 @@
+name: business-first
+
+# Déploiement local complet : front + gateway + microservices + PostgreSQL + RabbitMQ.
+#   docker compose up --build
+# Front :   http://localhost:3000
+# Gateway : http://localhost:5163
+# RabbitMQ (console) : http://localhost:15672 (guest/guest)
+
+x-service-env: &service-env
+  ASPNETCORE_ENVIRONMENT: Production
+  # Les appsettings de certains services déclarent un endpoint HTTPS "localhost" :
+  # en conteneur, on le remplace par un endpoint HTTP interne.
+  Kestrel__Endpoints__Https__Url: http://0.0.0.0:8080
+
+x-rabbitmq-env: &rabbitmq-env
+  RabbitMq__HostName: rabbitmq
+  RabbitMq__Port: "5672"
+  RabbitMq__UserName: guest
+  RabbitMq__Password: guest
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: business_first
+      POSTGRES_PASSWORD: business_first
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U business_first"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  gateway:
+    build:
+      context: ./backend/Gateway
+      dockerfile: Gateway/Dockerfile
+    ports:
+      - "5163:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ReverseProxy__Clusters__orders__Destinations__d1__Address: http://order-service:8080
+      ReverseProxy__Clusters__products__Destinations__d1__Address: http://product-service:8080
+      ReverseProxy__Clusters__reviews__Destinations__d1__Address: http://review-service:8080
+      ReverseProxy__Clusters__notifications__Destinations__d1__Address: http://notification-service:8080
+      ReverseProxy__Clusters__signalr__Destinations__d1__Address: http://signalr-service:8080
+      ReverseProxy__Clusters__inventory__Destinations__d1__Address: http://inventory-service:8080
+      ReverseProxy__Clusters__payments__Destinations__d1__Address: http://payment-service:8080
+      ReverseProxy__Clusters__shipping__Destinations__d1__Address: http://shipping-service:8080
+      ReverseProxy__Clusters__auth__Destinations__d1__Address: http://auth-service:8080
+    depends_on:
+      - auth-service
+      - order-service
+      - product-service
+      - inventory-service
+      - payment-service
+      - shipping-service
+
+  front:
+    build:
+      context: ./front
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+
+  auth-service:
+    build:
+      context: ./backend/Gateway
+      dockerfile: AuthService/Dockerfile
+    environment:
+      <<: *service-env
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=auth_db;Username=business_first;Password=business_first
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  product-service:
+    build:
+      context: ./backend/Gateway
+      dockerfile: ProductService/Dockerfile
+    environment:
+      <<: *service-env
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=product_db;Username=business_first;Password=business_first
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  order-service:
+    build:
+      context: ./backend/Gateway
+      dockerfile: OrderService/Dockerfile
+    environment:
+      <<: [*service-env, *rabbitmq-env]
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=order_db;Username=business_first;Password=business_first
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  inventory-service:
+    build:
+      context: ./backend/Gateway
+      dockerfile: InventoryService/Dockerfile
+    environment:
+      <<: [*service-env, *rabbitmq-env]
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=inventory_db;Username=business_first;Password=business_first
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  payment-service:
+    build:
+      context: ./backend/Gateway
+      dockerfile: PaymentService/Dockerfile
+    environment:
+      <<: [*service-env, *rabbitmq-env]
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=payment_db;Username=business_first;Password=business_first
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  shipping-service:
+    build:
+      context: ./backend/Gateway
+      dockerfile: ShippingService/Dockerfile
+    environment:
+      <<: [*service-env, *rabbitmq-env]
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=shipping_db;Username=business_first;Password=business_first
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  review-service:
+    build:
+      context: ./backend/Gateway
+      dockerfile: ReviewService/Dockerfile
+    environment:
+      <<: *service-env
+
+  notification-service:
+    build:
+      context: ./backend/Gateway
+      dockerfile: NotificationService/Dockerfile
+    environment:
+      <<: *service-env
+
+  signalr-service:
+    build:
+      context: ./backend/Gateway
+      dockerfile: SignalRService/Dockerfile
+    environment:
+      <<: *service-env
+
+volumes:
+  postgres-data:
