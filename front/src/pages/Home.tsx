@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { HeroSection } from '@/components/home/HeroSection';
 import { ProductGrid } from '@/components/product';
 import { useProducts, useFeaturedProducts } from '@/lib/hooks/useProducts';
-import { getCategoryIcon } from '@/data/mockCategories';
+import { getCategoryIcon } from '@/lib/category-icons';
 import { productService, type Category } from '@/lib/product-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

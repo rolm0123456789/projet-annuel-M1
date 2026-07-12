@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, AlertCircle } from 'lucide-react';
-import { getCategoryIcon } from '@/data/mockCategories';
+import { getCategoryIcon } from '@/lib/category-icons';
 import { productService, type Category } from '@/lib/product-service';
 
 export default function CategoriesPage() {
