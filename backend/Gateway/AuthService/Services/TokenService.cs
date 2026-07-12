@@ -15,13 +15,16 @@ public class TokenService
         _config = config;
     }
 
-    public string CreateToken(User user)
+    public string CreateToken(User user, Guid tenantId)
     {
+        // Le token porte l'identité ET le tenant courant (exigence 2 du cahier des charges) :
+        // la Gateway propage ensuite ce tenant aux services internes.
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.Role, user.Role),
+            new Claim("tenantId", tenantId.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
