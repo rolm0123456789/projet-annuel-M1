@@ -1,19 +1,28 @@
 using PaymentService.Data;
 using PaymentService.Messaging;
+using PaymentService.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseKestrel();
+
+// Contexte tenant : résolu par requête (header Gateway) ou par message consommé.
+builder.Services.AddScoped<TenantContext>();
+builder.Services.AddScoped<TenantConnectionInterceptor>();
+
 // Add services
 // PostgreSQL si une chaîne de connexion est fournie (conteneurs), sinon SQLite (dev local).
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var usePostgres = !string.IsNullOrWhiteSpace(connectionString);
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
     if (usePostgres)
         options.UseNpgsql(connectionString);
     else
         options.UseSqlite("Data Source=Payment.db");
+
+    // Positionne app.current_tenant sur chaque connexion : la RLS s'applique.
+    options.AddInterceptors(sp.GetRequiredService<TenantConnectionInterceptor>());
 });
 
 // RabbitMQ (désactivé si RabbitMq:HostName n'est pas configuré)
@@ -46,8 +55,14 @@ using (var scope = app.Services.CreateScope())
     }
     else
     {
-        db.Database.Migrate(); // Applique les migrations et crée la DB si besoin
+        // Base SQLite locale jetable : recréée depuis le modèle (le schéma
+        // a évolué avec tenant_id, les anciennes migrations ne suffisent plus).
+        db.Database.EnsureDeleted();
+        db.Database.EnsureCreated();
     }
+
+    // Row-Level Security PostgreSQL sur les tables métiers (rapport §4.7, Annexe D).
+    TenantRls.Apply(db, "Payments");
 }
 
 // Configure the HTTP request pipeline.
@@ -59,6 +74,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Résolution du tenant courant depuis le header interne posé par la Gateway.
+app.UseMiddleware<TenantMiddleware>();
 
 app.UseAuthorization();
 

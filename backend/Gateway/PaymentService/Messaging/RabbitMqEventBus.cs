@@ -17,6 +17,44 @@ public static class EventBusTopology
     public const string ShipmentCreated = "shipment.created";
 }
 
+// Enveloppe des événements, conforme au contrat du rapport (§4.5) :
+// eventId pour l'idempotence, tenantId pour l'isolation, occurredAt pour
+// l'horodatage, payload limité au nécessaire. correlationId permet de suivre
+// un flux complet dans les logs (§5.4, §5.9).
+public sealed record EventEnvelope(
+    Guid EventId,
+    Guid CorrelationId,
+    Guid TenantId,
+    string EventType,
+    DateTime OccurredAt,
+    JsonElement Payload)
+{
+    public static EventEnvelope Parse(ReadOnlySpan<byte> body)
+    {
+        using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(body));
+        var root = doc.RootElement;
+
+        var eventType = root.GetProperty("eventType").GetString() ?? "";
+        var eventId = root.GetProperty("eventId").GetGuid();
+        var correlationId = root.GetProperty("correlationId").GetGuid();
+        var occurredAt = root.GetProperty("occurredAt").GetDateTime();
+
+        // Un événement sans tenant valide est rejeté : un consommateur ne doit
+        // jamais traiter des données sans savoir à quelle boutique elles
+        // appartiennent (scénario multi-tenant du rapport, §6.4).
+        if (!root.TryGetProperty("tenantId", out var tenantElement)
+            || !Guid.TryParse(tenantElement.GetString(), out var tenantId)
+            || tenantId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                $"Evénement {eventType} ({eventId}) sans tenantId valide : message rejeté.");
+        }
+
+        return new EventEnvelope(eventId, correlationId, tenantId, eventType, occurredAt,
+            root.GetProperty("payload").Clone());
+    }
+}
+
 public sealed class RabbitMqOptions
 {
     public string HostName { get; set; } = "";
@@ -61,22 +99,23 @@ public sealed class RabbitMqConnection(RabbitMqOptions options, ILogger<RabbitMq
 
 public interface IEventPublisher
 {
-    void Publish(string routingKey, string eventType, object data, Guid? correlationId = null);
+    void Publish(string routingKey, string eventType, object payload, Guid tenantId, Guid? correlationId = null);
 }
 
 public sealed class RabbitMqEventPublisher(RabbitMqConnection connection, ILogger<RabbitMqEventPublisher> logger) : IEventPublisher
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public void Publish(string routingKey, string eventType, object data, Guid? correlationId = null)
+    public void Publish(string routingKey, string eventType, object payload, Guid tenantId, Guid? correlationId = null)
     {
         var envelope = new
         {
             eventId = Guid.NewGuid(),
             correlationId = correlationId ?? Guid.NewGuid(),
             occurredAt = DateTime.UtcNow,
-            type = eventType,
-            data
+            tenantId,
+            eventType,
+            payload
         };
 
         using var channel = connection.GetConnection().CreateModel();
@@ -95,15 +134,15 @@ public sealed class RabbitMqEventPublisher(RabbitMqConnection connection, ILogge
             JsonSerializer.SerializeToUtf8Bytes(envelope, JsonOptions));
 
         logger.LogInformation(
-            "Evénement {EventType} publié (routingKey={RoutingKey}, eventId={EventId}, correlationId={CorrelationId})",
-            eventType, routingKey, envelope.eventId, envelope.correlationId);
+            "Evénement {EventType} publié (routingKey={RoutingKey}, eventId={EventId}, correlationId={CorrelationId}, tenantId={TenantId})",
+            eventType, routingKey, envelope.eventId, envelope.correlationId, tenantId);
     }
 }
 
 // Utilisé quand RabbitMQ n'est pas configuré (dev local sans broker) : l'API reste fonctionnelle.
 public sealed class NullEventPublisher(ILogger<NullEventPublisher> logger) : IEventPublisher
 {
-    public void Publish(string routingKey, string eventType, object data, Guid? correlationId = null)
+    public void Publish(string routingKey, string eventType, object payload, Guid tenantId, Guid? correlationId = null)
         => logger.LogWarning("RabbitMQ non configuré : événement {EventType} ({RoutingKey}) non publié", eventType, routingKey);
 }
 
@@ -115,7 +154,7 @@ public abstract class RabbitMqConsumerService(RabbitMqConnection connection, ILo
     protected abstract string QueueName { get; }
     protected abstract IReadOnlyCollection<string> RoutingKeys { get; }
 
-    protected abstract Task HandleAsync(string eventType, Guid eventId, Guid correlationId, JsonElement data, CancellationToken ct);
+    protected abstract Task HandleAsync(EventEnvelope envelope, CancellationToken ct);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -162,18 +201,16 @@ public abstract class RabbitMqConsumerService(RabbitMqConnection connection, ILo
             Guid eventId = Guid.Empty, correlationId = Guid.Empty;
             try
             {
-                using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(ea.Body.Span));
-                var root = doc.RootElement;
-                var eventType = root.GetProperty("type").GetString() ?? "";
-                eventId = root.GetProperty("eventId").GetGuid();
-                correlationId = root.GetProperty("correlationId").GetGuid();
+                var envelope = EventEnvelope.Parse(ea.Body.Span);
+                eventId = envelope.EventId;
+                correlationId = envelope.CorrelationId;
 
-                await HandleAsync(eventType, eventId, correlationId, root.GetProperty("data"), stoppingToken);
+                await HandleAsync(envelope, stoppingToken);
 
                 channel.BasicAck(ea.DeliveryTag, multiple: false);
                 logger.LogInformation(
-                    "Evénement {EventType} traité (eventId={EventId}, correlationId={CorrelationId}, file={Queue})",
-                    eventType, eventId, correlationId, QueueName);
+                    "Evénement {EventType} traité (eventId={EventId}, correlationId={CorrelationId}, tenantId={TenantId}, file={Queue})",
+                    envelope.EventType, envelope.EventId, envelope.CorrelationId, envelope.TenantId, QueueName);
             }
             catch (Exception ex)
             {

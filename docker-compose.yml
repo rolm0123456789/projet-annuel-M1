@@ -82,7 +82,7 @@ services:
       dockerfile: AuthService/Dockerfile
     environment:
       <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=auth_db;Username=business_first;Password=business_first
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=auth_db;Username=business_first_app;Password=business_first_app
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,7 +93,7 @@ services:
       dockerfile: ProductService/Dockerfile
     environment:
       <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=product_db;Username=business_first;Password=business_first
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=product_db;Username=business_first_app;Password=business_first_app
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,7 +104,7 @@ services:
       dockerfile: OrderService/Dockerfile
     environment:
       <<: [*service-env, *rabbitmq-env]
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=order_db;Username=business_first;Password=business_first
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=order_db;Username=business_first_app;Password=business_first_app
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,7 +117,7 @@ services:
       dockerfile: InventoryService/Dockerfile
     environment:
       <<: [*service-env, *rabbitmq-env]
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=inventory_db;Username=business_first;Password=business_first
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=inventory_db;Username=business_first_app;Password=business_first_app
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,7 +130,7 @@ services:
       dockerfile: PaymentService/Dockerfile
     environment:
       <<: [*service-env, *rabbitmq-env]
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=payment_db;Username=business_first;Password=business_first
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=payment_db;Username=business_first_app;Password=business_first_app
     depends_on:
       postgres:
         condition: service_healthy
@@ -143,7 +143,7 @@ services:
       dockerfile: ShippingService/Dockerfile
     environment:
       <<: [*service-env, *rabbitmq-env]
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=shipping_db;Username=business_first;Password=business_first
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=shipping_db;Username=business_first_app;Password=business_first_app
     depends_on:
       postgres:
         condition: service_healthy

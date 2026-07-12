@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProductService.Data;
+using ProductService.Domain;
 using ProductService.Models;
 
 namespace productService.Controllers;
@@ -32,8 +33,10 @@ public class ProductController(ApplicationDbContext context) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProductModel>> CreateProduct([FromBody] ProductModel productModel)
     {
-        if (productModel is null)
-            return BadRequest();
+        // Règle métier (§6.2) : pas de produit sans nom ni prix valide.
+        var validation = ProductValidator.Validate(productModel);
+        if (!validation.IsValid)
+            return BadRequest(validation.Error);
 
         // L'ID sera généré automatiquement par la base de données
         productModel.CreatedAt = DateTime.UtcNow;
@@ -49,6 +52,10 @@ public class ProductController(ApplicationDbContext context) : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductModel updatedProduct)
     {
+        var validation = ProductValidator.Validate(updatedProduct);
+        if (!validation.IsValid)
+            return BadRequest(validation.Error);
+
         var existingProduct = await _context.Products.FindAsync(id);
         if (existingProduct is null)
             return NotFound();

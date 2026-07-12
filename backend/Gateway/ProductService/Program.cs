@@ -1,19 +1,27 @@
 using Microsoft.EntityFrameworkCore;
 using ProductService.Data;
 using ProductService.Models;
+using ProductService.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseKestrel();
 
+// Contexte tenant : résolu par requête (header interne posé par la Gateway).
+builder.Services.AddScoped<TenantContext>();
+builder.Services.AddScoped<TenantConnectionInterceptor>();
+
 // PostgreSQL si une chaîne de connexion est fournie (conteneurs), sinon SQLite (dev local).
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var usePostgres = !string.IsNullOrWhiteSpace(connectionString);
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
     if (usePostgres)
         options.UseNpgsql(connectionString);
     else
         options.UseSqlite("Data Source=Product.db");
+
+    // Positionne app.current_tenant sur chaque connexion : la RLS s'applique.
+    options.AddInterceptors(sp.GetRequiredService<TenantConnectionInterceptor>());
 });
 
 builder.Services.AddCors(options =>
@@ -49,6 +57,13 @@ using (var scope = app.Services.CreateScope())
             Thread.Sleep(TimeSpan.FromSeconds(2));
         }
     }
+
+    // Row-Level Security PostgreSQL sur les tables métiers (rapport §4.7, Annexe D).
+    TenantRls.Apply(db, "Products", "Categories");
+
+    // Le catalogue de démonstration appartient à la boutique par défaut.
+    scope.ServiceProvider.GetRequiredService<TenantContext>().TenantId =
+        Guid.Parse(app.Configuration["Tenancy:DefaultTenantId"] ?? TenantDefaults.DefaultTenantId);
     SeedData(db);
 }
 
@@ -61,6 +76,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+
+// Résolution du tenant courant depuis le header interne posé par la Gateway.
+app.UseMiddleware<TenantMiddleware>();
+
 app.UseAuthorization();
 app.MapControllers();
 app.Run();

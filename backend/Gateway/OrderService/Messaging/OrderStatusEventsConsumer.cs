@@ -1,11 +1,12 @@
-using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using OrderService.Data;
 using OrderService.Domain;
+using OrderService.Tenancy;
 
 namespace OrderService.Messaging;
 
 // Met à jour le statut des commandes à partir des événements publiés
-// par InventoryService, PaymentService et ShippingService.
+// par InventoryService, PaymentService et ShippingService (Annexe C).
 public sealed class OrderStatusEventsConsumer(
     RabbitMqConnection connection,
     IServiceScopeFactory scopeFactory,
@@ -24,29 +25,34 @@ public sealed class OrderStatusEventsConsumer(
         EventBusTopology.ShipmentCreated
     ];
 
-    protected override async Task HandleAsync(string eventType, Guid eventId, Guid correlationId, JsonElement data, CancellationToken ct)
+    protected override async Task HandleAsync(EventEnvelope envelope, CancellationToken ct)
     {
-        var orderId = data.GetProperty("orderId").GetInt32();
+        var orderId = envelope.Payload.GetProperty("orderId").GetInt32();
 
         using var scope = scopeFactory.CreateScope();
+
+        // Le traitement s'exécute dans le tenant de l'événement : filtre applicatif
+        // et RLS PostgreSQL empêchent tout accès transverse. Un événement dont le
+        // tenant ne correspond pas à la commande est donc isolé (rapport §6.4).
+        scope.ServiceProvider.GetRequiredService<TenantContext>().TenantId = envelope.TenantId;
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var order = await db.Orders.FindAsync([orderId], ct);
+        var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == orderId, ct);
         if (order is null)
         {
-            _logger.LogWarning("Commande {OrderId} introuvable pour l'événement {EventType} (correlationId={CorrelationId})",
-                orderId, eventType, correlationId);
+            _logger.LogWarning("Commande {OrderId} introuvable pour l'événement {EventType} dans le tenant {TenantId} (correlationId={CorrelationId})",
+                orderId, envelope.EventType, envelope.TenantId, envelope.CorrelationId);
             return;
         }
 
-        var newStatus = OrderStatusFlow.Apply(order.Status, eventType);
+        var newStatus = OrderStatusFlow.Apply(order.Status, envelope.EventType);
         if (newStatus is null)
             return;
 
         order.Status = newStatus;
         await db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Commande {OrderId} : statut mis à jour vers '{Status}' suite à {EventType} (correlationId={CorrelationId})",
-            orderId, newStatus, eventType, correlationId);
+        _logger.LogInformation("Commande {OrderId} : statut mis à jour vers '{Status}' suite à {EventType} (correlationId={CorrelationId}, tenantId={TenantId})",
+            orderId, newStatus, envelope.EventType, envelope.CorrelationId, envelope.TenantId);
     }
 }

@@ -1,10 +1,17 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using OrderService.Tenancy;
 
 namespace OrderService.Models;
 
-public class OrderModel
+public class OrderModel : ITenantOwned
 {
     public int Id { get; set; }
+
+    // Chaque ressource métier est rattachée à un tenant (exigence 2 du rapport).
+    [Column("tenant_id")]
+    public Guid TenantId { get; set; }
+
     public int UserId { get; set; }
     public string Status { get; set; } = default!;
     public float TotalAmount { get; set; }
@@ -13,9 +20,13 @@ public class OrderModel
     public ICollection<OrderItemModel> Items { get; set; } = new List<OrderItemModel>();
 }
 
-public class OrderItemModel
+public class OrderItemModel : ITenantOwned
 {
     public int Id { get; set; }
+
+    [Column("tenant_id")]
+    public Guid TenantId { get; set; }
+
     public int OrderId { get; set; }
     public int ProductId { get; set; }
     public int Quantity { get; set; }

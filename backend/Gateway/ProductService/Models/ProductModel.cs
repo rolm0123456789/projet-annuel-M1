@@ -1,8 +1,17 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using ProductService.Tenancy;
+
 namespace ProductService.Models;
 
-public class ProductModel
+public class ProductModel : ITenantOwned
 {
     public int Id { get; set; }
+
+    // Chaque produit est rattaché à un tenant : un commerçant ne gère que son
+    // propre catalogue (rapport §4.3).
+    [Column("tenant_id")]
+    public Guid TenantId { get; set; }
+
     public string Name { get; set; }
     public string Description { get; set; }
     public int Price { get; set; }

@@ -1,20 +1,28 @@
 using Microsoft.EntityFrameworkCore;
 using OrderService.Data;
 using OrderService.Messaging;
+using OrderService.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseKestrel();
+
+// Contexte tenant : résolu par requête (header Gateway) ou par message consommé.
+builder.Services.AddScoped<TenantContext>();
+builder.Services.AddScoped<TenantConnectionInterceptor>();
 
 // Add services
 // PostgreSQL si une chaîne de connexion est fournie (conteneurs), sinon SQLite (dev local).
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var usePostgres = !string.IsNullOrWhiteSpace(connectionString);
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
     if (usePostgres)
         options.UseNpgsql(connectionString);
     else
         options.UseSqlite("Data Source=Order.db");
+
+    // Positionne app.current_tenant sur chaque connexion : la RLS s'applique.
+    options.AddInterceptors(sp.GetRequiredService<TenantConnectionInterceptor>());
 });
 
 // RabbitMQ (désactivé si RabbitMq:HostName n'est pas configuré)
@@ -65,6 +73,9 @@ using (var scope = app.Services.CreateScope())
         db.Database.EnsureDeleted();
         db.Database.EnsureCreated();
     }
+
+    // Row-Level Security PostgreSQL sur les tables métiers (rapport §4.7, Annexe D).
+    TenantRls.Apply(db, "Orders", "OrderItemModel");
 }
 
 // Configure the HTTP request pipeline.
@@ -79,6 +90,9 @@ app.UseHttpsRedirection();
 
 // Utiliser CORS avant l'autorisation
 app.UseCors("AllowFrontend");
+
+// Résolution du tenant courant depuis le header interne posé par la Gateway.
+app.UseMiddleware<TenantMiddleware>();
 
 app.UseAuthorization();
 
