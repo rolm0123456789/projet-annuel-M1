@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, RefreshCw, AlertCircle, ShoppingBag } from 'lucide-react';
 import { OrderCard } from './OrderCard';
-import { OrderModel, orderService } from '@/lib/order-service';
+import { orderService, type OrderModel } from '@/lib/order-service';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function OrderList() {
@@ -20,7 +20,7 @@ export function OrderList() {
     setError(null);
     
     try {
-      const userOrders = await orderService.getUserOrders(user.id);
+      const userOrders = await orderService.getUserOrders();
       setOrders(userOrders);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement des commandes');
@@ -35,11 +35,6 @@ export function OrderList() {
 
   const handleOrderDeleted = (orderId: number) => {
     setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
-  };
-
-  const handleViewDetails = (orderId: number) => {
-    // TODO: Implémenter la vue détaillée d'une commande
-    console.log('Voir détails de la commande:', orderId);
   };
 
   // Filtrer les commandes par statut
@@ -154,7 +149,6 @@ export function OrderList() {
                 key={order.id}
                 order={order}
                 onOrderDeleted={handleOrderDeleted}
-                onViewDetails={handleViewDetails}
               />
             ))
           )}
@@ -174,7 +168,6 @@ export function OrderList() {
                 key={order.id}
                 order={order}
                 onOrderDeleted={handleOrderDeleted}
-                onViewDetails={handleViewDetails}
               />
             ))
           )}
