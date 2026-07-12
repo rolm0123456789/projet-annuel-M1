@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { productService } from '@/lib/product-service';
-import { adaptBackendProduct, type Product, type BackendProduct } from '@/types/product';
+import { adaptBackendProduct, type Product } from '@/types/product';
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
