@@ -21,7 +21,6 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProductGrid } from '@/components/product';
 import { useProduct, useProductsByCategory } from '@/lib/hooks/useProducts';
-// import { getCategoryIcon } from '@/data/mockCategories';
 import { useCart } from '@/contexts/CartContext';
 import type { Product } from '@/types/product';
 

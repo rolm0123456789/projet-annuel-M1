@@ -5,17 +5,17 @@ import type { Cart, CartItem, Product } from '@/types/product';
 interface CartContextType {
   cart: Cart;
   addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
+  removeFromCart: (itemId: number) => void;
+  updateQuantity: (itemId: number, quantity: number) => void;
   clearCart: () => void;
-  isInCart: (productId: string) => boolean;
-  getItemQuantity: (productId: string) => number;
+  isInCart: (productId: number) => boolean;
+  getItemQuantity: (productId: number) => number;
 }
 
 type CartAction =
   | { type: 'ADD_TO_CART'; payload: { product: Product; quantity: number } }
-  | { type: 'REMOVE_FROM_CART'; payload: { itemId: string } }
-  | { type: 'UPDATE_QUANTITY'; payload: { itemId: string; quantity: number } }
+  | { type: 'REMOVE_FROM_CART'; payload: { itemId: number } }
+  | { type: 'UPDATE_QUANTITY'; payload: { itemId: number; quantity: number } }
   | { type: 'CLEAR_CART' };
 
 const initialCart: Cart = {
@@ -138,14 +138,14 @@ export function CartProvider({ children }: CartProviderProps) {
     });
   };
 
-  const removeFromCart = (itemId: string) => {
+  const removeFromCart = (itemId: number) => {
     dispatch({
       type: 'REMOVE_FROM_CART',
       payload: { itemId },
     });
   };
 
-  const updateQuantity = (itemId: string, quantity: number) => {
+  const updateQuantity = (itemId: number, quantity: number) => {
     dispatch({
       type: 'UPDATE_QUANTITY',
       payload: { itemId, quantity },
@@ -156,11 +156,11 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'CLEAR_CART' });
   };
 
-  const isInCart = (productId: string): boolean => {
+  const isInCart = (productId: number): boolean => {
     return cart.items.some(item => item.id === productId);
   };
 
-  const getItemQuantity = (productId: string): number => {
+  const getItemQuantity = (productId: number): number => {
     const item = cart.items.find(item => item.id === productId);
     return item ? item.quantity : 0;
   };

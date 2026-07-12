@@ -57,11 +57,10 @@ class OrderService {
     return response.json();
   }
 
-  async getUserOrders(userId: number): Promise<OrderModel[]> {
-    // Pour l'instant, on récupère toutes les commandes et on filtre côté client
-    // TODO: Améliorer l'API backend pour ajouter un endpoint /orders/user/{userId}
-    const allOrders = await this.getAllOrders();
-    return allOrders.filter(order => order.userId === userId);
+  async getUserOrders(): Promise<OrderModel[]> {
+    // Le backend identifie l'utilisateur via le JWT validé par la Gateway
+    // (header interne X-User-Id) et ne renvoie que ses commandes.
+    return this.getAllOrders();
   }
 
   async createOrder(orderData: CreateOrderRequest): Promise<OrderModel> {
@@ -103,7 +102,7 @@ class OrderService {
 
   // Méthode utilitaire pour créer une commande depuis le panier
   async createOrderFromCart(cartItems: Array<{
-    id: string;
+    id: number;
     name: string;
     price: number;
     quantity: number;
@@ -118,7 +117,7 @@ class OrderService {
     );
 
     const orderItems = cartItems.map(item => ({
-      productId: parseInt(item.id), // Convertir string vers number
+      productId: item.id,
       quantity: item.quantity,
       unitPrice: item.price,
     }));

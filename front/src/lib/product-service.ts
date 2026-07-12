@@ -1,4 +1,5 @@
 import { GATEWAY_URL } from './config';
+import { authService } from './auth-service';
 
 const API_BASE_URL = `${GATEWAY_URL}/api/products/Product`;
 const CATEGORY_BASE_URL = `${GATEWAY_URL}/api/products/Category`;
@@ -87,13 +88,11 @@ class ProductService {
     return response.json();
   }
 
-  // Créer un nouveau produit
+  // Créer un nouveau produit (réservé aux administrateurs : le token JWT est
+  // transmis systématiquement, la Gateway contrôle le rôle)
   async createProduct(productData: CreateProductRequest): Promise<Product> {
-    const response = await fetch(`${API_BASE_URL}`, {
+    const response = await authService.authenticatedFetch(`${API_BASE_URL}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(productData),
     });
     
@@ -106,13 +105,10 @@ class ProductService {
     return response.json();
   }
 
-  // Mettre à jour un produit
+  // Mettre à jour un produit (réservé aux administrateurs)
   async updateProduct(id: number, productData: UpdateProductRequest): Promise<Product> {
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
+    const response = await authService.authenticatedFetch(`${API_BASE_URL}/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(productData),
     });
     
@@ -126,9 +122,9 @@ class ProductService {
     return response.json();
   }
 
-  // Supprimer un produit
+  // Supprimer un produit (réservé aux administrateurs)
   async deleteProduct(id: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
+    const response = await authService.authenticatedFetch(`${API_BASE_URL}/${id}`, {
       method: 'DELETE',
     });
     

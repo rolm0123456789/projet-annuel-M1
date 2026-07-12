@@ -11,12 +11,15 @@ import {
 } from '@/components/ui/command';
 import { Button } from '@/components/ui/button';
 import { useProductSearch } from '@/lib/hooks/useProducts';
-import { mockCategories, getCategoryIcon } from '@/data/mockCategories';
+import { getCategoryIcon } from '@/lib/category-icons';
+import { useCategories } from '@/lib/hooks/useCategories';
 
 export function SearchCommand() {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+  // Catégories réelles du catalogue (ProductService via la Gateway).
+  const { categories } = useCategories();
   
   // const platform = navigator?.userAgent.toLowerCase() || "no-platform";
 
@@ -47,7 +50,7 @@ export function SearchCommand() {
     navigate({ to: `/categories/${categorySlug}` });
   };
 
-  const handleProductSelect = (productId: string) => {
+  const handleProductSelect = (productId: number) => {
     setOpen(false);
     navigate({ to: `/products/${productId}` });
   };
@@ -83,8 +86,8 @@ export function SearchCommand() {
           
           {/* Catégories */}
           <CommandGroup heading="Catégories">
-            {mockCategories.slice(0, 6).map((category) => {
-              const CategoryIcon = getCategoryIcon(category.id);
+            {categories.slice(0, 6).map((category) => {
+              const CategoryIcon = getCategoryIcon(category.slug);
               return (
                 <CommandItem
                   key={category.id}

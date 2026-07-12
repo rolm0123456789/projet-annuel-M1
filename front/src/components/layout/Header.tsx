@@ -19,14 +19,17 @@ import {
 
 import { SearchCommand } from '@/components/search/SearchCommand';
 import { Cart } from '@/components/cart';
-import { mockCategories, getCategoryIcon } from '@/data/mockCategories';
+import { getCategoryIcon } from '@/lib/category-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useConfig } from '@/lib/hooks/useConfig';
+import { useCategories } from '@/lib/hooks/useCategories';
 
 export function Header() {
   const { isAuthenticated, user, isAdmin, signOut } = useAuth();
   const { clientName, logo } = useConfig();
+  // Catégories réelles du catalogue (ProductService via la Gateway).
+  const { categories } = useCategories();
 
 
   const handleSignOut = async () => {
@@ -61,8 +64,8 @@ export function Header() {
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <div className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-3 lg:w-[600px]">
-                    {mockCategories.map((category) => {
-                      const IconComponent = getCategoryIcon(category.id);
+                    {categories.map((category) => {
+                      const IconComponent = getCategoryIcon(category.slug);
                       return (
                         <NavigationMenuLink key={category.id} asChild>
                           <Link
@@ -164,8 +167,8 @@ export function Header() {
                   <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
                     Catégories
                   </h3>
-                  {mockCategories.map((category) => {
-                    const IconComponent = getCategoryIcon(category.id);
+                  {categories.map((category) => {
+                    const IconComponent = getCategoryIcon(category.slug);
                     return (
                       <Link
                         key={category.id}
