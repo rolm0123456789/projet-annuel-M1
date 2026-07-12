@@ -64,6 +64,43 @@ using (var scope = app.Services.CreateScope())
     {
         dbContext.Database.Migrate();
     }
+
+    SeedTenants(dbContext, app.Configuration);
 }
 
 app.Run();
+
+// Tenant par défaut (boutique « Business First ») + rattachement des utilisateurs
+// existants : tout utilisateur doit appartenir à un tenant (rapport §4.6/§5.5).
+static void SeedTenants(AuthDbContext db, IConfiguration config)
+{
+    var defaultTenantId = Guid.Parse(config["Tenancy:DefaultTenantId"] ?? AuthService.Models.TenantDefaults.DefaultTenantId);
+
+    if (!db.Tenants.Any(t => t.Id == defaultTenantId))
+    {
+        db.Tenants.Add(new AuthService.Models.Tenant
+        {
+            Id = defaultTenantId,
+            Name = AuthService.Models.TenantDefaults.DefaultTenantName,
+            Slug = AuthService.Models.TenantDefaults.DefaultTenantSlug
+        });
+        db.SaveChanges();
+    }
+
+    var usersWithoutTenant = db.Users
+        .Where(u => !db.TenantUsers.Any(tu => tu.UserId == u.Id))
+        .ToList();
+
+    foreach (var user in usersWithoutTenant)
+    {
+        db.TenantUsers.Add(new AuthService.Models.TenantUser
+        {
+            TenantId = defaultTenantId,
+            UserId = user.Id,
+            Role = user.Role
+        });
+    }
+
+    if (usersWithoutTenant.Count > 0)
+        db.SaveChanges();
+}
