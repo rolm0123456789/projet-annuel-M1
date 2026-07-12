@@ -1,7 +1,7 @@
-using System.Text.Json;
 using InventoryService.Data;
 using InventoryService.Domain;
 using InventoryService.Models;
+using InventoryService.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryService.Messaging;
@@ -21,21 +21,25 @@ public sealed class OrderCreatedConsumer(
 
     protected override IReadOnlyCollection<string> RoutingKeys => [EventBusTopology.OrderCreated];
 
-    protected override async Task HandleAsync(string eventType, Guid eventId, Guid correlationId, JsonElement data, CancellationToken ct)
+    protected override async Task HandleAsync(EventEnvelope envelope, CancellationToken ct)
     {
-        var orderId = data.GetProperty("orderId").GetInt32();
+        var orderId = envelope.Payload.GetProperty("orderId").GetInt32();
 
         using var scope = scopeFactory.CreateScope();
+
+        // Le traitement s'exécute dans le tenant de l'événement : le stock d'une
+        // autre boutique est invisible, donc impossible à réserver (§6.4).
+        scope.ServiceProvider.GetRequiredService<TenantContext>().TenantId = envelope.TenantId;
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         // Idempotence : un événement déjà traité est ignoré.
-        if (await db.ProcessedEvents.AnyAsync(e => e.EventId == eventId, ct))
+        if (await db.ProcessedEvents.AnyAsync(e => e.EventId == envelope.EventId, ct))
         {
-            _logger.LogInformation("Evénement {EventId} déjà traité, ignoré (commande {OrderId})", eventId, orderId);
+            _logger.LogInformation("Evénement {EventId} déjà traité, ignoré (commande {OrderId})", envelope.EventId, orderId);
             return;
         }
 
-        var lines = data.GetProperty("items").EnumerateArray()
+        var lines = envelope.Payload.GetProperty("items").EnumerateArray()
             .Select(i => new ReservationLine(
                 i.GetProperty("productId").GetInt32().ToString(),
                 i.GetProperty("quantity").GetInt32()))
@@ -62,19 +66,19 @@ public sealed class OrderCreatedConsumer(
             }
         }
 
-        db.ProcessedEvents.Add(new ProcessedEvent { EventId = eventId });
+        db.ProcessedEvents.Add(new ProcessedEvent { EventId = envelope.EventId });
         await db.SaveChangesAsync(ct);
 
         if (result.Success)
         {
             eventPublisher.Publish(EventBusTopology.StockReserved, "StockReserved",
-                new { orderId }, correlationId);
+                new { orderId }, envelope.TenantId, envelope.CorrelationId);
         }
         else
         {
             _logger.LogWarning("Réservation refusée pour la commande {OrderId} : {Reason}", orderId, result.FailureReason);
             eventPublisher.Publish(EventBusTopology.StockReservationFailed, "StockReservationFailed",
-                new { orderId, reason = result.FailureReason }, correlationId);
+                new { orderId, reason = result.FailureReason }, envelope.TenantId, envelope.CorrelationId);
         }
     }
 }

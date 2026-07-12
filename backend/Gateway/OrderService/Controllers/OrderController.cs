@@ -13,25 +13,47 @@ public class OrderController(ApplicationDbContext context, IEventPublisher event
 {
     private readonly ApplicationDbContext _context = context;
 
+    // Contexte utilisateur propagé par la Gateway dans les headers internes
+    // (rapport §5.2) : les décisions métier restent dans le service (§4.8).
+    private int? CurrentUserId =>
+        int.TryParse(Request.Headers["X-User-Id"], out var id) ? id : null;
+
+    private bool IsAdmin =>
+        string.Equals(Request.Headers["X-User-Role"], "Admin", StringComparison.OrdinalIgnoreCase);
+
     [HttpGet]
     public async Task<ActionResult<List<OrderModel>>> GetOrderModels()
     {
-        return Ok(await _context.Orders
-            .Include(o => o.Items) // Inclure les items
-            .ToListAsync());
+        var query = _context.Orders.Include(o => o.Items).AsQueryable();
+
+        // Contrôle des rôles : un client ne voit que ses propres commandes,
+        // un administrateur voit toutes celles de sa boutique.
+        if (!IsAdmin)
+        {
+            if (CurrentUserId is not { } userId)
+                return Forbid();
+            query = query.Where(o => o.UserId == userId);
+        }
+
+        return Ok(await query.ToListAsync());
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<OrderModel>> GetOrderModelById(int id)
     {
-        var OrderModel = await _context.Orders
-            .Include(o => o.Items) // Inclure les items
+        var order = await _context.Orders
+            .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == id);
 
-        if (OrderModel is null)
+        if (order is null)
             return NotFound();
 
-        return Ok(OrderModel);
+        // Une commande d'un autre client est introuvable, pas interdite :
+        // on n'expose pas l'existence de la ressource.
+        if (!IsAdmin && order.UserId != CurrentUserId)
+            return NotFound();
+
+        return Ok(order);
     }
 
     [HttpPost]
@@ -39,6 +61,10 @@ public class OrderController(ApplicationDbContext context, IEventPublisher event
     {
         if (newOrderModel is null)
             return BadRequest();
+
+        // L'identité vient du JWT validé par la Gateway, pas du corps de requête.
+        if (CurrentUserId is { } userId)
+            newOrderModel.UserId = userId;
 
         newOrderModel.Status = OrderStatusFlow.Pending;
         newOrderModel.TotalAmount = OrderPricing.ComputeTotal(newOrderModel.Items);
@@ -52,7 +78,7 @@ public class OrderController(ApplicationDbContext context, IEventPublisher event
             .FirstOrDefaultAsync(o => o.Id == newOrderModel.Id);
 
         // Publication de l'événement OrderCreated : InventoryService et PaymentService
-        // consomment cet événement de manière asynchrone.
+        // consomment cet événement de manière asynchrone (Annexe C du rapport).
         eventPublisher.Publish(EventBusTopology.OrderCreated, "OrderCreated", new
         {
             orderId = newOrderModel.Id,
@@ -64,7 +90,7 @@ public class OrderController(ApplicationDbContext context, IEventPublisher event
                 quantity = i.Quantity,
                 unitPrice = i.UnitPrice
             })
-        });
+        }, newOrderModel.TenantId);
 
         return CreatedAtAction(nameof(GetOrderModelById), new { id = newOrderModel.Id }, createdOrder);
     }
@@ -72,26 +98,29 @@ public class OrderController(ApplicationDbContext context, IEventPublisher event
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateOrderModel(int id, OrderModel updatedOrderModel)
     {
-        var OrderModel = await _context.Orders.FindAsync(id);
-        if (OrderModel is null)
+        var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id);
+        if (order is null)
             return NotFound();
 
-        OrderModel.Status = updatedOrderModel.Status;
-
+        order.Status = updatedOrderModel.Status;
 
         await _context.SaveChangesAsync();
 
-        return Ok(OrderModel);
+        return Ok(order);
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteOrderModel(int id)
     {
-        var OrderModel = await _context.Orders.FindAsync(id);
-        if (OrderModel is null)
+        var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id);
+        if (order is null)
             return NotFound();
 
-        _context.Orders.Remove(OrderModel);
+        // Un client ne peut annuler que ses propres commandes.
+        if (!IsAdmin && order.UserId != CurrentUserId)
+            return NotFound();
+
+        _context.Orders.Remove(order);
         await _context.SaveChangesAsync();
 
         return NoContent();
