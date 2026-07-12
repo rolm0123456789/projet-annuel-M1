@@ -13,11 +13,13 @@ namespace AuthService.Controllers
     {
         private readonly AuthDbContext _context;
         private readonly TokenService _tokenService;
+        private readonly Guid _defaultTenantId;
 
-        public AuthController(AuthDbContext context, TokenService tokenService)
+        public AuthController(AuthDbContext context, TokenService tokenService, IConfiguration config)
         {
             _context = context;
             _tokenService = tokenService;
+            _defaultTenantId = Guid.Parse(config["Tenancy:DefaultTenantId"] ?? TenantDefaults.DefaultTenantId);
         }
 
         [HttpPost("register")]
@@ -32,6 +34,16 @@ namespace AuthService.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
+            // Chaque utilisateur est rattaché à un tenant (boutique) : le MVP
+            // n'expose que la boutique par défaut, le modèle en autorise plusieurs.
+            _context.TenantUsers.Add(new TenantUser
+            {
+                TenantId = _defaultTenantId,
+                UserId = user.Id,
+                Role = user.Role
+            });
+            await _context.SaveChangesAsync();
+
             return Ok("Utilisateur créé avec succès.");
         }
 
@@ -42,7 +54,12 @@ namespace AuthService.Controllers
             if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized("Identifiants invalides.");
 
-            var token = _tokenService.CreateToken(user);
+            // Le tenant courant est dérivé de l'appartenance de l'utilisateur,
+            // jamais choisi arbitrairement par le client (rapport §5.1).
+            var membership = await _context.TenantUsers.FirstOrDefaultAsync(tu => tu.UserId == user.Id);
+            var tenantId = membership?.TenantId ?? _defaultTenantId;
+
+            var token = _tokenService.CreateToken(user, tenantId);
             return Ok(new { token });
         }
 
