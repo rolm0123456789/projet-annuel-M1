@@ -24,9 +24,9 @@ jobs:
         run: dotnet build backend/Gateway/Gateway.sln --no-restore -c Release
 
       - name: Tests
-        run: |
-          dotnet test backend/Gateway/OrderService.Tests/OrderService.Tests.csproj -c Release
-          dotnet test backend/Gateway/InventoryService.Tests/InventoryService.Tests.csproj -c Release
+        # Tests unitaires des 5 microservices (rapport §6.2) : règles métier,
+        # contrat d'événements et isolation multi-tenant.
+        run: dotnet test backend/Gateway/Gateway.sln -c Release --no-build
 
   frontend:
     name: Frontend - build
@@ -51,10 +51,8 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      # Dette technique : erreurs TypeScript historiques, non bloquantes pour l'instant.
       - name: Typecheck
         run: npx tsc -b
-        continue-on-error: true
 
       - name: Build
         run: npx vite build
