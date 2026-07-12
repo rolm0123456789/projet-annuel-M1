@@ -3,70 +3,59 @@ using InventoryService.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventoryService.Controllers
+namespace InventoryService.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+public class InventoryController(ApplicationDbContext context) : ControllerBase
 {
-    [ApiController]
-    [Route("[controller]")]
-    public class InventoryController(ApplicationDbContext context) : ControllerBase
+    private readonly ApplicationDbContext _context = context;
+
+    public sealed record SetStockRequest(int Quantity);
+
+    [HttpGet]
+    public async Task<ActionResult<List<InventoryModel>>> GetInventoryModels()
+        => Ok(await _context.Inventorys.ToListAsync());
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<InventoryModel>> GetInventoryModelById(int id)
     {
-        private readonly ApplicationDbContext _context = context;
+        var inventory = await _context.Inventorys.FindAsync(id);
+        return inventory is null ? NotFound() : Ok(inventory);
+    }
 
-        [HttpGet]
-        public async Task<ActionResult<List<InventoryModel>>> GetInventoryModels()
+    // Source unique de vérité du stock : crée ou met à jour la ligne du produit
+    // dans le tenant courant. Une route dédiée évite les doublons ProductId qui
+    // rendaient ensuite la réservation impossible.
+    [HttpPut("product/{productId}")]
+    public async Task<ActionResult<InventoryModel>> SetStock(string productId, SetStockRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(productId) || request.Quantity < 0)
+            return BadRequest("Le produit et une quantité positive ou nulle sont requis.");
+
+        var stock = await _context.Inventorys.SingleOrDefaultAsync(i => i.ProductId == productId);
+        if (stock is null)
         {
-            return Ok(await _context.Inventorys
-                .ToListAsync());
+            stock = new InventoryModel { ProductId = productId };
+            _context.Inventorys.Add(stock);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<InventoryModel>> GetInventoryModelById(int id)
-        {
-            var InventoryModel = await _context.Inventorys.FindAsync(id);
-            if (InventoryModel is null)
-                return NotFound();
+        stock.Quantity = request.Quantity.ToString();
+        stock.last_updated = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
 
-            return Ok(InventoryModel);
-        }
+        return Ok(stock);
+    }
 
-        [HttpPost]
-        public async Task<ActionResult<InventoryModel>> AddInventoryModel(InventoryModel newInventoryModel)
-        {
-            if (newInventoryModel is null)
-                return BadRequest();
+    [HttpDelete("product/{productId}")]
+    public async Task<IActionResult> DeleteInventoryByProductId(string productId)
+    {
+        var stock = await _context.Inventorys.SingleOrDefaultAsync(i => i.ProductId == productId);
+        if (stock is null)
+            return NotFound();
 
-            _context.Inventorys.Add(newInventoryModel);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetInventoryModelById), new { id = newInventoryModel.Id }, newInventoryModel);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateInventoryModel(int id, InventoryModel updatedInventoryModel)
-        {
-            var InventoryModel = await _context.Inventorys.FindAsync(id);
-            if (InventoryModel is null)
-                return NotFound();
-
-            InventoryModel.last_updated = updatedInventoryModel.last_updated;
-            InventoryModel.ProductId = updatedInventoryModel.ProductId;
-            InventoryModel.Quantity = updatedInventoryModel.Quantity;
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteInventoryModel(int id)
-        {
-            var InventoryModel = await _context.Inventorys.FindAsync(id);
-            if (InventoryModel is null)
-                return NotFound();
-
-            _context.Inventorys.Remove(InventoryModel);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
+        _context.Inventorys.Remove(stock);
+        await _context.SaveChangesAsync();
+        return NoContent();
     }
 }

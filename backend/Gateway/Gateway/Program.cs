@@ -113,7 +113,7 @@ var protectedRoutes = new List<(string prefix, string[] methods, string policy)>
     ("/api/orders",    new[] { "PUT", "PATCH" },          "RequireAdmin"),
     ("/api/payments",  new[] { "GET", "POST", "PUT", "PATCH", "DELETE" }, "RequireAdmin"),
     ("/api/products",  new[] { "POST", "PUT", "PATCH", "DELETE" },        "RequireAdmin"),
-    ("/api/inventory", new[] { "GET", "POST", "PUT", "PATCH", "DELETE" }, "RequireAdmin"),
+    ("/api/inventory", new[] { "POST", "PUT", "PATCH", "DELETE" }, "RequireAdmin"),
     ("/api/shipping",  new[] { "GET" },                                    "Authenticated"),
     ("/api/shipping",  new[] { "POST", "PUT", "PATCH", "DELETE" },         "RequireAdmin"),
 };

@@ -1,4 +1,5 @@
 import { GATEWAY_URL } from './config';
+import { inventoryService } from './inventory-service';
 import { authService } from './auth-service';
 
 const API_BASE_URL = `${GATEWAY_URL}/api/products/Product`;
@@ -63,6 +64,21 @@ export interface UpdateProductRequest {
 }
 
 class ProductService {
+  private async withInventory(products: Product[]): Promise<Product[]> {
+    const inventory = await inventoryService.getAll();
+    const quantityByProductId = new Map(
+      inventory.map(item => [item.productId, Number.parseInt(item.quantity, 10) || 0]),
+    );
+
+    // Les produits historiques sans ligne d'inventaire gardent temporairement
+    // leur valeur catalogue : l'écran Stocks crée la ligne manquante une fois,
+    // puis InventoryService devient la source affichée et réservée.
+    return products.map(product => ({
+      ...product,
+      stockQuantity: quantityByProductId.get(String(product.id)) ?? product.stockQuantity,
+    }));
+  }
+
   // Récupérer tous les produits
   async getAllProducts(): Promise<Product[]> {
     const response = await fetch(`${API_BASE_URL}`);
@@ -71,7 +87,7 @@ class ProductService {
       throw new Error('Erreur lors de la récupération des produits');
     }
     
-    return response.json();
+    return this.withInventory(await response.json());
   }
 
   // Récupérer un produit par ID
@@ -85,7 +101,9 @@ class ProductService {
       throw new Error('Erreur lors de la récupération du produit');
     }
     
-    return response.json();
+    const product: Product = await response.json();
+    const [productWithInventory] = await this.withInventory([product]);
+    return productWithInventory ?? product;
   }
 
   // Créer un nouveau produit (réservé aux administrateurs : le token JWT est
@@ -102,7 +120,9 @@ class ProductService {
       throw new Error(`Erreur lors de la création du produit: ${response.status}`);
     }
     
-    return response.json();
+    const product: Product = await response.json();
+    await inventoryService.upsert(product.id, productData.stockQuantity);
+    return product;
   }
 
   // Mettre à jour un produit (réservé aux administrateurs)
@@ -119,7 +139,9 @@ class ProductService {
       throw new Error('Erreur lors de la mise à jour du produit');
     }
     
-    return response.json();
+    const product: Product = await response.json();
+    await inventoryService.upsert(product.id, productData.stockQuantity);
+    return product;
   }
 
   // Supprimer un produit (réservé aux administrateurs)
@@ -134,6 +156,7 @@ class ProductService {
       }
       throw new Error('Erreur lors de la suppression du produit');
     }
+    await inventoryService.remove(id);
   }
 
   // Rechercher des produits
@@ -144,7 +167,7 @@ class ProductService {
       throw new Error('Erreur lors de la recherche de produits');
     }
     
-    return response.json();
+    return this.withInventory(await response.json());
   }
 
   // Récupérer les produits par catégorie
@@ -155,7 +178,7 @@ class ProductService {
       throw new Error('Erreur lors de la récupération des produits par catégorie');
     }
     
-    return response.json();
+    return this.withInventory(await response.json());
   }
 
   // Récupérer les produits en promotion
@@ -166,7 +189,7 @@ class ProductService {
       throw new Error('Erreur lors de la récupération des produits en promotion');
     }
     
-    return response.json();
+    return this.withInventory(await response.json());
   }
 
   // Récupérer les produits en rupture de stock
@@ -177,7 +200,7 @@ class ProductService {
       throw new Error('Erreur lors de la récupération des produits en rupture de stock');
     }
     
-    return response.json();
+    return this.withInventory(await response.json());
   }
 
   // Utilitaires de formatage
@@ -225,4 +248,4 @@ class ProductService {
   }
 }
 
-export const productService = new ProductService(); 
+export const productService = new ProductService();

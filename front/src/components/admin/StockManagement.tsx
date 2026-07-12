@@ -21,6 +21,7 @@ import {
   Package,
 } from 'lucide-react';
 import { productService, type Product, type Category } from '@/lib/product-service';
+import { inventoryService } from '@/lib/inventory-service';
 import { formatPrice, getStockBadgeVariant } from '@/lib/admin-utils';
 
 type StockFilter = 'all' | 'in-stock' | 'low' | 'out';
@@ -47,11 +48,22 @@ export function StockManagement() {
     setLoading(true);
     setError(null);
     try {
-      const [p, c] = await Promise.all([
+      const [p, c, inventory] = await Promise.all([
         productService.getAllProducts(),
         productService.getCategories(),
+        inventoryService.getAll(),
       ]);
-      setProducts(p);
+
+      // Migration douce des produits déjà présents avant l'introduction de
+      // l'inventaire. Elle ne crée que les lignes absentes et ne réécrit donc
+      // jamais un stock déjà réservé par une commande.
+      const stockedProductIds = new Set(inventory.map(item => item.productId));
+      const missingStocks = p.filter(product => !stockedProductIds.has(String(product.id)));
+      if (missingStocks.length > 0) {
+        await Promise.all(missingStocks.map(product => inventoryService.upsert(product.id, product.stockQuantity)));
+      }
+
+      setProducts(missingStocks.length > 0 ? await productService.getAllProducts() : p);
       setCategories(c);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
@@ -114,20 +126,7 @@ export function StockManagement() {
 
     setSaving(true);
     try {
-      await productService.updateProduct(product.id, {
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        image: product.image,
-        images: product.images,
-        category: product.category,
-        categoryId: product.categoryId,
-        brand: product.brand,
-        stockQuantity: newQty,
-        tags: product.tags,
-        isOnSale: product.isOnSale,
-        discount: product.discount,
-      });
+      await inventoryService.upsert(product.id, newQty);
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, stockQuantity: newQty } : p));
       setEditingId(null);
     } catch {
