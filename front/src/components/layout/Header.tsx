@@ -44,13 +44,13 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 w-full items-center justify-between px-4">
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to="/" className="flex min-w-0 items-center space-x-2">
           {logo.src ? (
             <img src={logo.src} alt={logo.alt} className="h-6 w-6 object-contain" />
           ) : (
             <ShoppingBag className="h-6 w-6" />
           )}
-          <span className="text-xl font-bold">{clientName}</span>
+          <span className="truncate text-xl font-bold">{clientName}</span>
         </Link>
 
         {/* Navigation Desktop - Centré */}
@@ -101,6 +101,16 @@ export function Header() {
 
           {/* Panier */}
           <Cart />
+
+          {/* Accès direct à la connexion sur mobile */}
+          {!isAuthenticated && (
+            <Button variant="ghost" size="sm" asChild className="md:hidden">
+              <Link to="/login" aria-label="Connexion" className="flex items-center gap-1.5">
+                <LogIn className="h-4 w-4" />
+                <span>Connexion</span>
+              </Link>
+            </Button>
+          )}
 
           {isAdmin && (
             <Button variant="ghost" asChild>
@@ -256,4 +266,4 @@ export function Header() {
       </div>
     </header>
   );
-} 
+}

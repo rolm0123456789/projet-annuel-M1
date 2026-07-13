@@ -97,11 +97,16 @@ public class ProductController(ApplicationDbContext context) : ControllerBase
     [HttpGet("search/{searchTerm}")]
     public async Task<ActionResult<List<ProductModel>>> SearchProducts(string searchTerm)
     {
+        var normalizedSearchTerm = searchTerm.Trim().ToUpperInvariant();
+
+        if (string.IsNullOrEmpty(normalizedSearchTerm))
+            return Ok(new List<ProductModel>());
+
         var products = await _context.Products
-            .Where(p => p.Name.Contains(searchTerm) || 
-                       p.Description.Contains(searchTerm) ||
-                       p.Category.Contains(searchTerm) ||
-                       p.Brand.Contains(searchTerm))
+            .Where(p => p.Name.ToUpper().Contains(normalizedSearchTerm) ||
+                       p.Description.ToUpper().Contains(normalizedSearchTerm) ||
+                       p.Category.ToUpper().Contains(normalizedSearchTerm) ||
+                       p.Brand.ToUpper().Contains(normalizedSearchTerm))
             .ToListAsync();
         return Ok(products);
     }
